@@ -1,0 +1,83 @@
+---
+title: "EDA: Detecting Cyber Attacks in Water Networks"
+output: html_notebook
+---
+
+```{r}
+# Remove all variables from the R environment to create a fresh start
+rm(list=ls())
+
+# Load datasets
+train1 <- read.csv("train_dataset01.csv")
+train2 <- read.csv("train_dataset02.csv")
+test <- read.csv("test_dataset.csv")
+```
+
+I tried printing out the summaries but they are too long to be immediately useful. Let's try plots of variables for times with cyber attacks and times without 
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+train2[train2$ATT_FLAG == "True",] %>%
+  keep(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+    facet_wrap(~ key, scales = "free") +
+    geom_histogram(binwidth = 25)
+```
+
+```{r}
+train2[train2$ATT_FLAG == "False",] %>%
+  keep(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+    facet_wrap(~ key, scales = "free") +
+    geom_histogram(binwidth = 25)
+```
+
+I still cannot see much other than that distributions between observations with attacks and no attacks are different. This is a good sign for now. We can look at distribution of attacks and no-attacks and see what is our baseline F-scores in the training data set
+
+```{r}
+distribution <- table(train2$ATT_FLAG)
+distribution
+```
+ 
+We can predict all True and see what is our score. 
+```{r}
+# Precision
+precision <- distribution[2]/sum(distribution)
+precision
+
+# Recall
+recall <- distribution[2]/distribution[2]
+recall
+
+# F score
+(2 * precision * recall)/(precision + recall)
+```
+ 
+Maybe we can look at distribution of catogorical columns when grouped by their ATT_FLAG and see if we can identify significant features. 
+```{r}
+cats = c("STATUS_PU1", "STATUS_PU2", "STATUS_PU4", "STATUS_PU6", "STATUS_PU7", "STATUS_PU10",  "STATUS_PU11", "STATUS_V2")
+
+# Proportion table for obs with attacks
+prop.table(sapply(train2[train2$ATT_FLAG == "True", cats], table), margin = 2)
+
+# Proportion table for obs without attacks
+prop.table(sapply(train2[train2$ATT_FLAG == "False", cats], table), margin = 2)
+```
+
+From the above two tables, it seems that we can ignore PU1, PU4 and PU11 since the distributions seem to be the same regardless of whether there is an attack or not. To be sure, we need to do a t-test. (We are definitely ignoring PU3, PU5, PU8 and PU9 since they only have one level)
+
+```{r}
+for (col in cats) {
+  result <- t.test(
+              as.logical(train2[train2$ATT_FLAG == "True", col]),
+              as.logical(train2[train2$ATT_FLAG == "False", col])
+            )
+  print(col)
+  print(result)
+}
+```
+
+The t-test shows us that among the catergorical features, we cannot reject the hypothesis that STATUS_PU4's mean differs between observations with attacks and observations without attacks. i.e. we may want to consider removing STATUS_PU4 in our models. 
