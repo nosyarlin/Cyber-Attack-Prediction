@@ -47,15 +47,7 @@ f1
 
 ```{r}
 # read batadal data
-batadal <- read.csv("BATADAL.csv")
-
-# process batadal data
-cats = c("STATUS_PU1", "STATUS_PU2", "STATUS_PU3", "STATUS_PU4", "STATUS_PU5", "STATUS_PU6", "STATUS_PU7", "STATUS_PU8", "STATUS_PU9", "STATUS_PU10", "STATUS_PU11", "STATUS_V2")
-
-for (col in cats) {
-  batadal[, col] <- ifelse(batadal[,col] == 1, "True", "False")
-  batadal[, col] <- as.factor(batadal[, col])
-}
+batadal <- read.csv("batadal_train.csv")
 
 # try on test set
 predict2 <- predict(model1, newdata = batadal, type = 'response')
