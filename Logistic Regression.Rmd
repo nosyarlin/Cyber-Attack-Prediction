@@ -1,0 +1,35 @@
+---
+title: "Logistic Regression: Detecting Cyber Attacks in Water Networks"
+output: html_notebook
+---
+
+```{r}
+# Remove all variables from the R environment to create a fresh start
+rm(list=ls())
+
+# Load datasets
+train1 <- read.csv("train_dataset01.csv")
+train2 <- read.csv("train_dataset02.csv")
+test <- read.csv("test_dataset.csv")
+# Remove variables that have a factor level of 1 
+train2 <- train2[, sapply(train2, nlevels) > 1]
+```
+
+
+Utilising the dataset with ATT_FLAG set as True and False (train2), logistic regression can be performed.
+```{r}
+library(caTools)
+set.seed(100)
+spl <-sample.split(train2$ATT_FLAG, SplitRatio =0.6)
+attackTrain <- subset(train2, spl == TRUE)
+attackTest <- subset(train2, spl == FALSE)
+```
+
+```{r}
+model1 <- glm(ATT_FLAG~., data = attackTrain, family = binomial)
+summary(model1)
+predict1 <- predict(model1, newdata = attackTrain, type = 'response')
+table1 <- table(predict1 >= 0.5, attackTrain$ATT_FLAG)
+sum(diag(table1))/sum(table1)
+```
+
