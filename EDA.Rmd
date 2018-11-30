@@ -136,7 +136,98 @@ From the above plots, it seems as if attacks 1 and 2 are very similar, 3 and 4 a
 
 We can use clustering techniques to verify this. 
 
-# TODO: Clustering
+## Clustering
+
+```{r}
+set.seed(1)
+fit <- 0
+for(k in 1:10){
+  clusterTrain <- kmeans(train2.small[,2:28], centers=k, nstart=20)
+  fit[k] <- clusterTrain$tot.withinss
+}
+plot(1:10, fit)
+```
+After performing kmeans on the non-catergorical data, it seems that there are around 4 to 5 clusters (using elbow method) 
+
+```{r}
+# Let's see the corresponding clusters with 5 clusters
+# Add clusters to df
+clusterTrain <- kmeans(train2.small[,2:28], centers=5, nstart=20)
+train2.small$cluster <- clusterTrain$cluster
+```
+
+```{r}
+# Plot as time series to see if clustering captured the attack patterns
+train2.small.ts <- ts(train2.small)
+plot.ts(train2.small.ts[,"ATT_FLAG"], col="red")
+par(new = TRUE)
+plot.ts(train2.small.ts[,"cluster"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="blue")
+```
+
+So from the plot above, we can see that kmeans totally didn't work out. This is sad. How about Hierarchical clustering?
+
+```{r}
+# With the function dist, we calculate the distance 
+distances <- dist(train2.small[,2:28], method="euclidean")
+dim(train2.small)
+length(distances)
+
+# Execute hierarchical clustering. We use Ward's distance method to find compact clusters.
+clusterTrain <- hclust(distances, method="ward.D2")
+# Plots the dendrogram. We have several movies, so the lists at the bottom cannot be read
+plot(clusterTrain) 
+```
+
+```{r}
+# Let's then cut the dendrogram into 5 clusters
+clusters <- cutree(clusterTrain, k=5)
+
+# Plot as time series to see if clustering captured the attack patterns
+train2.small$cluster <- clusters
+train2.small.ts <- ts(train2.small)
+plot.ts(train2.small.ts[,"ATT_FLAG"], col="red")
+par(new = TRUE)
+plot.ts(train2.small.ts[,"cluster"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="black")
+```
+Still terrible. Ugh, looks like I can't use clustering to prove anything here. What if I do clustering only on obs with attacks? 
+
+```{r}
+# First label attack numbers in train data
+train2.small$attack <- rep("0", times=nrow(train2.small))
+
+attack = 0
+prev = "False"
+for (i in 1:nrow(train2.small)) {
+  cur = train2.small$ATT_FLAG[i]
+  if (cur == "True") {
+    if (prev == "False") {
+      attack = attack + 1
+    }
+    train2.small$attack[i] <- attack 
+  }
+  prev = cur
+}
+
+train2.small.ts <- ts(train2.small)
+plot.ts(train2.small.ts[,"ATT_FLAG"], col="red")
+par(new = TRUE)
+plot.ts(train2.small.ts[,"attack"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="black")
+```
+Woohoo! Looks like I did it correctly. So now attacks are labelled 1 to 7. Now we see if attacks of the same type get clustered together. 
+
+```{r}
+# Cluster
+attacks <- train2.small[train2.small$ATT_FLAG == "True",]
+clusterAttacks <- kmeans(attacks[,2:28], centers=5, nstart=20)
+attacks$cluster <- clusterAttacks$cluster
+
+# Plot as timeseries
+attacks.ts <- ts(attacks)
+plot.ts(attacks.ts[,"attack"], col="red")
+par(new = TRUE)
+plot.ts(train2.small.ts[,"cluster"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="blue")
+```
+Didn't work out again. My explanation is, because noise is so much, points in the same "attack" or "non attack" regions end up being separated. Plus, the obs with attacks differ from obs without attacks in patterns that are most obvious in a time series plot. However, the clustering techniques we have used here only look at absolute values of the features of each observation, and are not able to pick up on patterns over time. I can think of two things to try here, 1. remove noise and 2. model this problem as a time series somehow. 
 
 ## Removing Noise
 The plots were very noisy, making patterns harder to spot. We could try smoothing methods to de-noise the data
@@ -155,3 +246,4 @@ plot(sma1)
 plot(forecast(sma1))
 ```
 
+sma clearly didn't work. I got to find something else. 
