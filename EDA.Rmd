@@ -14,6 +14,8 @@ test <- read.csv("test_dataset.csv")
 ```
 
 I tried printing out the summaries but they are too long to be immediately useful. Let's try plots of variables for times with cyber attacks and times without 
+
+## Histograms
 ```{r}
 library(tidyverse)
 library(ggplot2)
@@ -35,6 +37,7 @@ train2[train2$ATT_FLAG == "False",] %>%
     geom_histogram(binwidth = 25)
 ```
 
+## Baseline Model
 I still cannot see much other than that distributions between observations with attacks and no attacks are different. This is a good sign for now. We can look at distribution of attacks and no-attacks and see what is our baseline F-scores in the training data set
 
 ```{r}
@@ -56,6 +59,7 @@ recall
 (2 * precision * recall)/(precision + recall)
 ```
  
+## See Distribution of Categorical Data
 Maybe we can look at distribution of catogorical columns when grouped by their ATT_FLAG and see if we can identify significant features. 
 ```{r}
 cats = c("STATUS_PU1", "STATUS_PU2", "STATUS_PU4", "STATUS_PU6", "STATUS_PU7", "STATUS_PU10",  "STATUS_PU11", "STATUS_V2")
@@ -81,3 +85,73 @@ for (col in cats) {
 ```
 
 The t-test shows us that among the catergorical features, we cannot reject the hypothesis that STATUS_PU4's mean differs between observations with attacks and observations without attacks. i.e. we may want to consider removing STATUS_PU4 in our models. 
+
+We can do the same analysis for non-catergorical features. 
+# TODO
+
+## Looking for Patterns in time series
+We notice that the data has a data component. Perhaps we should look at it as a time series?
+```{r}
+train2.ts <- ts(train2)
+str(train2.ts)
+plot.ts(train2.ts[,"ATT_FLAG"], ylab = "ATT_FLAG")
+```
+
+This looks interesting. From this plot we can see that attacks occur over a duration and there are 7 attacks in this set of training data. This perhaps also suggests that we cannot treat observations independently. If the previous observation is an attack, the next observation is more likely to be an attack as well since attack observations come together. 
+
+Another thing is, if we just throw a logistic regression model at this data, we are assuming that all 7 attacks have the same patterns. Perhaps the attacks are executed differently? Maybe I can use clustering techniques to see how many different types of attacks we have here. We have at most 7 possible different kinds of attacks. If we can identify that, maybe we can build one model to identify each type of attack. Which could improve our performance.
+
+We can look at other features and see how they vary with time. 
+```{r}
+# for (col in colnames(train2.ts)) {
+#   plot.ts(train2.ts[,col], ylab=col)
+# }
+```
+
+Ok there are way too many plots and my R studio is lagging now so I have to comment them out
+
+From the plots we can see a few things. First, there doesn't seem to be a decreasing or increasing trend in the features across time. This is good as things are pretty constant other than the attacks. 
+
+Second, different attacks correspond different anomalies in the features. This confirms our hypothesis that there are more than one type of attack. 
+
+Third, there are many features that just remain constant throughout so we can ignore them. 
+
+There is also a lot of noise in the data. We might want to find a way to clean that up. 
+
+```{r}
+ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS_PU5", "STATUS_PU8", "STATUS_PU9")
+train2.small <- train2[ , -which(names(train2) %in% ignore)]
+train2.small.ts <- ts(train2.small)
+
+# for (col in colnames(train2.small.ts)) {
+#   if (col != "DATETIME" & col != "ATT_FLAG") {
+#     plot.ts(train2.small.ts[,col], ylab=col, col=c("black"))
+#     par(new = TRUE)
+#     plot.ts(train2.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+#   }
+# }
+```
+
+From the above plots, it seems as if attacks 1 and 2 are very similar, 3 and 4 are very similar, and 6 and 7 are very similar. Attack 5 seems to be a slight variant from attacks 6 and 7. There seems to be 3-4 different types of attacks here. 
+
+We can use clustering techniques to verify this. 
+
+# TODO: Clustering
+
+## Removing Noise
+The plots were very noisy, making patterns harder to spot. We could try smoothing methods to de-noise the data
+```{r}
+library(smooth)
+library(Mcomp)
+
+# Example of a noisy plot
+plot.ts(train2.small.ts[,"LEVEL_T7"], ylab="LEVEL_T7")
+
+sma1 <- sma(train2.small.ts[,"LEVEL_T7"], h=18, silent = FALSE)
+plot(sma1)
+```
+
+```{r}
+plot(forecast(sma1))
+```
+
