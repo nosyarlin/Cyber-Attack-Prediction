@@ -11,8 +11,10 @@ rm(list=ls())
 train1 <- read.csv("train_dataset01.csv")
 train2 <- read.csv("train_dataset02.csv")
 test <- read.csv("test_dataset.csv")
-# Remove variables that have a factor level of 1 
-train2 <- train2[, sapply(train2, nlevels) > 1]
+
+# Remove variables that don't vary
+ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS_PU5", "STATUS_PU8", "STATUS_PU9")
+train2.small <- train2[, -which(names(train2) %in% ignore)]
 ```
 
 
@@ -20,16 +22,51 @@ Utilising the dataset with ATT_FLAG set as True and False (train2), logistic reg
 ```{r}
 library(caTools)
 set.seed(100)
-spl <-sample.split(train2$ATT_FLAG, SplitRatio =0.6)
-attackTrain <- subset(train2, spl == TRUE)
-attackTest <- subset(train2, spl == FALSE)
+spl <-sample.split(train2.small$ATT_FLAG, SplitRatio =0.7)
+attackTrain <- subset(train2.small, spl == TRUE)
+attackTest <- subset(train2.small, spl == FALSE)
 ```
 
 ```{r}
+attackTrain$DATETIME <- NULL
+
 model1 <- glm(ATT_FLAG~., data = attackTrain, family = binomial)
 summary(model1)
-predict1 <- predict(model1, newdata = attackTrain, type = 'response')
-table1 <- table(predict1 >= 0.5, attackTrain$ATT_FLAG)
-sum(diag(table1))/sum(table1)
+predict1 <- predict(model1, newdata = attackTest, type = 'response')
+table1 <- table(predict1 >= 0.5, attackTest$ATT_FLAG)
+
+precision <- table1[2,2]/sum(table1[2,])
+recall <- table1[2,2]/sum(table1[,2])
+f1 <- 2 * precision * recall / (precision + recall)
+
+precision
+recall
+f1
+```
+
+
+```{r}
+# read batadal data
+batadal <- read.csv("BATADAL.csv")
+
+# process batadal data
+cats = c("STATUS_PU1", "STATUS_PU2", "STATUS_PU3", "STATUS_PU4", "STATUS_PU5", "STATUS_PU6", "STATUS_PU7", "STATUS_PU8", "STATUS_PU9", "STATUS_PU10", "STATUS_PU11", "STATUS_V2")
+
+for (col in cats) {
+  batadal[, col] <- ifelse(batadal[,col] == 1, "True", "False")
+  batadal[, col] <- as.factor(batadal[, col])
+}
+
+# try on test set
+predict2 <- predict(model1, newdata = batadal, type = 'response')
+table2 <- table(predict2 >= 0.5, batadal$ATT_FLAG)
+
+precision <- table2[2,2]/sum(table1[2,])
+recall <- table2[2,2]/sum(table1[,2])
+f1 <- 2 * precision * recall / (precision + recall)
+
+precision
+recall
+f1
 ```
 

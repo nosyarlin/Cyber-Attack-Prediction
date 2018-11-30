@@ -178,39 +178,165 @@ $(document).ready(function () {
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBSZW1vdmUgYWxsIHZhcmlhYmxlcyBmcm9tIHRoZSBSIGVudmlyb25tZW50IHRvIGNyZWF0ZSBhIGZyZXNoIHN0YXJ0XG5ybShsaXN0PWxzKCkpXG4jIExvYWQgZGF0YXNldHNcbnRyYWluMSA8LSByZWFkLmNzdihcInRyYWluX2RhdGFzZXQwMS5jc3ZcIilcbmBgYCJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBSZW1vdmUgYWxsIHZhcmlhYmxlcyBmcm9tIHRoZSBSIGVudmlyb25tZW50IHRvIGNyZWF0ZSBhIGZyZXNoIHN0YXJ0XG5ybShsaXN0PWxzKCkpXG4jIExvYWQgZGF0YXNldHNcbnRyYWluMSA8LSByZWFkLmNzdihcInRyYWluX2RhdGFzZXQwMS5jc3ZcIilcbnRyYWluMiA8LSByZWFkLmNzdihcInRyYWluX2RhdGFzZXQwMi5jc3ZcIilcbnRlc3QgPC0gcmVhZC5jc3YoXCJ0ZXN0X2RhdGFzZXQuY3N2XCIpXG4jIFJlbW92ZSB2YXJpYWJsZXMgdGhhdCBkb24ndCB2YXJ5XG5pZ25vcmUgPSBjKFwiTEVWRUxfVDVcIiwgXCJGTE9XX1BVM1wiLCBcIkZMT1dfUFU1XCIsIFwiRkxPV19QVTlcIiwgXCJTVEFUVVNfUFUzXCIsIFwiU1RBVFVTX1BVNVwiLCBcIlNUQVRVU19QVThcIiwgXCJTVEFUVVNfUFU5XCIpXG50cmFpbjIuc21hbGwgPC0gdHJhaW4yWywgLXdoaWNoKG5hbWVzKHRyYWluMikgJWluJSBpZ25vcmUpXVxuYGBgIn0= -->
 <pre class="r"><code># Remove all variables from the R environment to create a fresh start
 rm(list=ls())
 # Load datasets
-train1 &lt;- read.csv(&quot;train_dataset01.csv&quot;)</code></pre>
+train1 &lt;- read.csv(&quot;train_dataset01.csv&quot;)
+train2 &lt;- read.csv(&quot;train_dataset02.csv&quot;)
+test &lt;- read.csv(&quot;test_dataset.csv&quot;)
+# Remove variables that don't vary
+ignore = c(&quot;LEVEL_T5&quot;, &quot;FLOW_PU3&quot;, &quot;FLOW_PU5&quot;, &quot;FLOW_PU9&quot;, &quot;STATUS_PU3&quot;, &quot;STATUS_PU5&quot;, &quot;STATUS_PU8&quot;, &quot;STATUS_PU9&quot;)
+train2.small &lt;- train2[, -which(names(train2) %in% ignore)]</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiY2Fubm90IG9wZW4gZmlsZSAndHJhaW5fZGF0YXNldDAxLmNzdic6IE5vIHN1Y2ggZmlsZSBvciBkaXJlY3RvcnlFcnJvciBpbiBmaWxlKGZpbGUsIFwicnRcIikgOiBjYW5ub3Qgb3BlbiB0aGUgY29ubmVjdGlvblxuIn0= -->
-<pre><code>cannot open file 'train_dataset01.csv': No such file or directoryError in file(file, &quot;rt&quot;) : cannot open the connection</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>Utilising the dataset with ATT_FLAG set as True and False (train2), logistic regression can be performed.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShjYVRvb2xzKVxuc2V0LnNlZWQoMTAwKVxuc3BsIDwtc2FtcGxlLnNwbGl0KHRyYWluMiRBVFRfRkxBRywgU3BsaXRSYXRpbyA9MC42KVxuYXR0YWNrVHJhaW4gPC0gc3Vic2V0KHRyYWluMiwgc3BsID09IFRSVUUpXG5hdHRhY2tUZXN0IDwtIHN1YnNldCh0cmFpbjIsIHNwbCA9PSBGQUxTRSlcbmBgYCJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShjYVRvb2xzKVxuc2V0LnNlZWQoMTAwKVxuc3BsIDwtc2FtcGxlLnNwbGl0KHRyYWluMi5zbWFsbCRBVFRfRkxBRywgU3BsaXRSYXRpbyA9MC43KVxuYXR0YWNrVHJhaW4gPC0gc3Vic2V0KHRyYWluMi5zbWFsbCwgc3BsID09IFRSVUUpXG5hdHRhY2tUZXN0IDwtIHN1YnNldCh0cmFpbjIuc21hbGwsIHNwbCA9PSBGQUxTRSlcbmBgYCJ9 -->
 <pre class="r"><code>library(caTools)
 set.seed(100)
-spl &lt;-sample.split(train2$ATT_FLAG, SplitRatio =0.6)
-attackTrain &lt;- subset(train2, spl == TRUE)
-attackTest &lt;- subset(train2, spl == FALSE)</code></pre>
+spl &lt;-sample.split(train2.small$ATT_FLAG, SplitRatio =0.7)
+attackTrain &lt;- subset(train2.small, spl == TRUE)
+attackTest &lt;- subset(train2.small, spl == FALSE)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubW9kZWwxIDwtIGdsbShBVFRfRkxBR34uLCBkYXRhID0gYXR0YWNrVHJhaW4sIGZhbWlseSA9IGJpbm9taWFsKVxuYGBgIn0= -->
-<pre class="r"><code>model1 &lt;- glm(ATT_FLAG~., data = attackTrain, family = binomial)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYXR0YWNrVHJhaW4kREFURVRJTUUgPC0gTlVMTFxubW9kZWwxIDwtIGdsbShBVFRfRkxBR34uLCBkYXRhID0gYXR0YWNrVHJhaW4sIGZhbWlseSA9IGJpbm9taWFsKVxuYGBgIn0= -->
+<pre class="r"><code>attackTrain$DATETIME &lt;- NULL
+model1 &lt;- glm(ATT_FLAG~., data = attackTrain, family = binomial)</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiZ2xtLmZpdDogYWxnb3JpdGhtIGRpZCBub3QgY29udmVyZ2VnbG0uZml0OiBmaXR0ZWQgcHJvYmFiaWxpdGllcyBudW1lcmljYWxseSAwIG9yIDEgb2NjdXJyZWRcbiJ9 -->
+<pre><code>glm.fit: algorithm did not convergeglm.fit: fitted probabilities numerically 0 or 1 occurred</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShtb2RlbDEpXG5gYGAifQ== -->
+<pre class="r"><code>summary(model1)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxuZ2xtKGZvcm11bGEgPSBBVFRfRkxBRyB+IC4sIGZhbWlseSA9IGJpbm9taWFsLCBkYXRhID0gYXR0YWNrVHJhaW4pXG5cbkRldmlhbmNlIFJlc2lkdWFsczogXG4gICBNaW4gICAgICAxUSAgTWVkaWFuICAgICAgM1EgICAgIE1heCAgXG4gLTguNDkgICAgMC4wMCAgICAwLjAwICAgIDAuMDAgICAgOC40OSAgXG5cbkNvZWZmaWNpZW50czpcbiAgICAgICAgICAgICAgICAgIEVzdGltYXRlIFN0ZC4gRXJyb3IgICAgeiB2YWx1ZSBQcig+fHp8KSAgICBcbihJbnRlcmNlcHQpICAgICAgOC4wMTBlKzE2ICA4LjAxMmUrMDggICA5OTk3MzYwNSAgIDwyZS0xNiAqKipcbkxFVkVMX1QxICAgICAgICAgMy44NzZlKzE0ICAxLjMyMmUrMDYgIDI5MzI1NjgyNCAgIDwyZS0xNiAqKipcbkxFVkVMX1QyICAgICAgICAgMi44NDllKzE0ICAxLjg5OGUrMDYgIDE1MDA5MTk2NyAgIDwyZS0xNiAqKipcbkxFVkVMX1QzICAgICAgICAgMS43NTVlKzE0ICAxLjQ3MWUrMDYgIDExOTMyOTY3MyAgIDwyZS0xNiAqKipcbkxFVkVMX1Q0ICAgICAgICAtNC43NzNlKzEzICAxLjMxMGUrMDYgIC0zNjQzMTYxMiAgIDwyZS0xNiAqKipcbkxFVkVMX1Q2ICAgICAgICAgMS45MTVlKzE1ICA1LjExMGUrMDYgIDM3NDc3NjMzNyAgIDwyZS0xNiAqKipcbkxFVkVMX1Q3ICAgICAgICAtNC43NDZlKzE0ICAxLjA5MmUrMDYgLTQzNDQ1NzgxOSAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0oyODAgICAtMi4zNTJlKzE2ICAyLjQ3NGUrMDggIC05NTA5NDgyMSAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0oyNjkgICAtNy42NjVlKzE0ICAxLjQzNWUrMDcgIC01MzQyMTc3MiAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0ozMDAgICAtMi45MzRlKzE1ICAxLjc4OGUrMDggIC0xNjQxMjA0OCAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0oyNTYgICAgMS41NTFlKzEzICA1LjYyN2UrMDUgICAyNzU1NjM2NiAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0oyODkgICAgNS4yMTJlKzE1ICAxLjc4NGUrMDggICAyOTIyMzU2NyAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0o0MTUgICAtMy4wMDFlKzEzICA1LjMxN2UrMDUgIC01NjQ1MzQ4NCAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0ozMDIgICAtMy4zNTllKzE1ICAxLjYyMWUrMDggIC0yMDcyMTk2OCAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0ozMDYgICAtMi45NjhlKzEzICA5Ljc4NWUrMDUgIC0zMDMzNDgyMyAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0ozMDcgICAgMy42MTNlKzE1ICAxLjYyMGUrMDggICAyMjI5NTM4NSAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0ozMTcgICAgMy44MTBlKzEyICA2Ljc0MGUrMDUgICAgNTY1MjcxNiAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0oxNCAgICAtMi41NTdlKzE0ICA0LjU3M2UrMDYgIC01NTkyMzIxOSAgIDwyZS0xNiAqKipcblBSRVNTVVJFX0o0MjIgICAtMi40MjdlKzE1ICAyLjA4MmUrMDcgLTExNjU0MTMyNiAgIDwyZS0xNiAqKipcbkZMT1dfUFUxICAgICAgICAtNC4zOTNlKzE0ICA3Ljk0MGUrMDYgIC01NTMxODU2NSAgIDwyZS0xNiAqKipcbkZMT1dfUFUyICAgICAgICAtMS4yMzZlKzE0ICAxLjE1NmUrMDYgLTEwNjg1NzA5MyAgIDwyZS0xNiAqKipcbkZMT1dfUFU0ICAgICAgICAgOC43NzVlKzEzICAxLjQ1OGUrMDYgICA2MDE5ODY4MCAgIDwyZS0xNiAqKipcbkZMT1dfUFU2ICAgICAgICAgMS40MzZlKzE0ICA4LjA1NmUrMDUgIDE3ODI0NjA1MyAgIDwyZS0xNiAqKipcbkZMT1dfUFU3ICAgICAgICAtMS4xNTZlKzE0ICAzLjg2OGUrMDUgLTI5ODkxODk2NiAgIDwyZS0xNiAqKipcbkZMT1dfUFU4ICAgICAgICAgMi42MjBlKzEzICA4Ljk3OGUrMDUgICAyOTE4MTU5MiAgIDwyZS0xNiAqKipcbkZMT1dfUFUxMCAgICAgICAgMS4wMzdlKzEzICAyLjM2N2UrMDYgICAgNDM4MjQ4NiAgIDwyZS0xNiAqKipcbkZMT1dfUFUxMSAgICAgICAgNC4yNDZlKzE0ICA2LjYwOWUrMDYgICA2NDI0NjQ4MiAgIDwyZS0xNiAqKipcbkZMT1dfVjIgICAgICAgICAtMS4wODdlKzEzICA1LjU3MmUrMDUgIC0xOTUxNjg0OSAgIDwyZS0xNiAqKipcblNUQVRVU19QVTFUcnVlICAgNi4wMjZlKzE2ICAxLjAyN2UrMDkgICA1ODY2Mjk4MyAgIDwyZS0xNiAqKipcblNUQVRVU19QVTJUcnVlICAgMS4xNDdlKzE2ICA5LjcwMWUrMDcgIDExODIzMTU5OSAgIDwyZS0xNiAqKipcblNUQVRVU19QVTRUcnVlICAtMy4yNTllKzE1ICA0LjM1MmUrMDcgIC03NDg5NTE0NCAgIDwyZS0xNiAqKipcblNUQVRVU19QVTZUcnVlICAtNC45NjVlKzE1ICA0LjUwMmUrMDcgLTExMDI5Njk4MiAgIDwyZS0xNiAqKipcblNUQVRVU19QVTdUcnVlICAgNi40MzJlKzE1ICAxLjA4MGUrMDcgIDU5NTQ0MDQ0NSAgIDwyZS0xNiAqKipcblNUQVRVU19QVTEwVHJ1ZSAgNS43MTVlKzE0ICA3LjIzNWUrMDcgICAgNzg5OTM5MyAgIDwyZS0xNiAqKipcblNUQVRVU19QVTExVHJ1ZSAtOC4zOTZlKzE1ICAxLjU2NmUrMDggIC01MzYxMjU0MiAgIDwyZS0xNiAqKipcblNUQVRVU19WMlRydWUgICAgOS40MTFlKzE0ICAxLjk2OGUrMDcgICA0NzgzMjAzMiAgIDwyZS0xNiAqKipcbi0tLVxuU2lnbmlmLiBjb2RlczogIDAgJyoqKicgMC4wMDEgJyoqJyAwLjAxICcqJyAwLjA1ICcuJyAwLjEgJyAnIDFcblxuKERpc3BlcnNpb24gcGFyYW1ldGVyIGZvciBiaW5vbWlhbCBmYW1pbHkgdGFrZW4gdG8gYmUgMSlcblxuICAgIE51bGwgZGV2aWFuY2U6ICA4NzE4LjUgIG9uIDEyNjg1ICBkZWdyZWVzIG9mIGZyZWVkb21cblJlc2lkdWFsIGRldmlhbmNlOiA1Mjk4NC4yICBvbiAxMjY1MCAgZGVncmVlcyBvZiBmcmVlZG9tXG5BSUM6IDUzMDU2XG5cbk51bWJlciBvZiBGaXNoZXIgU2NvcmluZyBpdGVyYXRpb25zOiAyNVxuIn0= -->
+<pre><code>
+Call:
+glm(formula = ATT_FLAG ~ ., family = binomial, data = attackTrain)
+
+Deviance Residuals: 
+   Min      1Q  Median      3Q     Max  
+ -8.49    0.00    0.00    0.00    8.49  
+
+Coefficients:
+                  Estimate Std. Error    z value Pr(&gt;|z|)    
+(Intercept)      8.010e+16  8.012e+08   99973605   &lt;2e-16 ***
+LEVEL_T1         3.876e+14  1.322e+06  293256824   &lt;2e-16 ***
+LEVEL_T2         2.849e+14  1.898e+06  150091967   &lt;2e-16 ***
+LEVEL_T3         1.755e+14  1.471e+06  119329673   &lt;2e-16 ***
+LEVEL_T4        -4.773e+13  1.310e+06  -36431612   &lt;2e-16 ***
+LEVEL_T6         1.915e+15  5.110e+06  374776337   &lt;2e-16 ***
+LEVEL_T7        -4.746e+14  1.092e+06 -434457819   &lt;2e-16 ***
+PRESSURE_J280   -2.352e+16  2.474e+08  -95094821   &lt;2e-16 ***
+PRESSURE_J269   -7.665e+14  1.435e+07  -53421772   &lt;2e-16 ***
+PRESSURE_J300   -2.934e+15  1.788e+08  -16412048   &lt;2e-16 ***
+PRESSURE_J256    1.551e+13  5.627e+05   27556366   &lt;2e-16 ***
+PRESSURE_J289    5.212e+15  1.784e+08   29223567   &lt;2e-16 ***
+PRESSURE_J415   -3.001e+13  5.317e+05  -56453484   &lt;2e-16 ***
+PRESSURE_J302   -3.359e+15  1.621e+08  -20721968   &lt;2e-16 ***
+PRESSURE_J306   -2.968e+13  9.785e+05  -30334823   &lt;2e-16 ***
+PRESSURE_J307    3.613e+15  1.620e+08   22295385   &lt;2e-16 ***
+PRESSURE_J317    3.810e+12  6.740e+05    5652716   &lt;2e-16 ***
+PRESSURE_J14    -2.557e+14  4.573e+06  -55923219   &lt;2e-16 ***
+PRESSURE_J422   -2.427e+15  2.082e+07 -116541326   &lt;2e-16 ***
+FLOW_PU1        -4.393e+14  7.940e+06  -55318565   &lt;2e-16 ***
+FLOW_PU2        -1.236e+14  1.156e+06 -106857093   &lt;2e-16 ***
+FLOW_PU4         8.775e+13  1.458e+06   60198680   &lt;2e-16 ***
+FLOW_PU6         1.436e+14  8.056e+05  178246053   &lt;2e-16 ***
+FLOW_PU7        -1.156e+14  3.868e+05 -298918966   &lt;2e-16 ***
+FLOW_PU8         2.620e+13  8.978e+05   29181592   &lt;2e-16 ***
+FLOW_PU10        1.037e+13  2.367e+06    4382486   &lt;2e-16 ***
+FLOW_PU11        4.246e+14  6.609e+06   64246482   &lt;2e-16 ***
+FLOW_V2         -1.087e+13  5.572e+05  -19516849   &lt;2e-16 ***
+STATUS_PU1True   6.026e+16  1.027e+09   58662983   &lt;2e-16 ***
+STATUS_PU2True   1.147e+16  9.701e+07  118231599   &lt;2e-16 ***
+STATUS_PU4True  -3.259e+15  4.352e+07  -74895144   &lt;2e-16 ***
+STATUS_PU6True  -4.965e+15  4.502e+07 -110296982   &lt;2e-16 ***
+STATUS_PU7True   6.432e+15  1.080e+07  595440445   &lt;2e-16 ***
+STATUS_PU10True  5.715e+14  7.235e+07    7899393   &lt;2e-16 ***
+STATUS_PU11True -8.396e+15  1.566e+08  -53612542   &lt;2e-16 ***
+STATUS_V2True    9.411e+14  1.968e+07   47832032   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance:  8718.5  on 12685  degrees of freedom
+Residual deviance: 52984.2  on 12650  degrees of freedom
+AIC: 53056
+
+Number of Fisher Scoring iterations: 25</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucHJlZGljdDEgPC0gcHJlZGljdChtb2RlbDEsIG5ld2RhdGEgPSBhdHRhY2tUZXN0LCB0eXBlID0gJ3Jlc3BvbnNlJylcbnRhYmxlMSA8LSB0YWJsZShwcmVkaWN0MSA+PSAwLjUsIGF0dGFja1Rlc3QkQVRUX0ZMQUcpXG5wcmVjaXNpb24gPC0gdGFibGUxWzIsMl0vc3VtKHRhYmxlMVsyLF0pXG5yZWNhbGwgPC0gdGFibGUxWzIsMl0vc3VtKHRhYmxlMVssMl0pXG5mMSA8LSAyICogcHJlY2lzaW9uICogcmVjYWxsIC8gKHByZWNpc2lvbiArIHJlY2FsbClcbnByZWNpc2lvblxuYGBgIn0= -->
+<pre class="r"><code>predict1 &lt;- predict(model1, newdata = attackTest, type = 'response')
+table1 &lt;- table(predict1 &gt;= 0.5, attackTest$ATT_FLAG)
+precision &lt;- table1[2,2]/sum(table1[2,])
+recall &lt;- table1[2,2]/sum(table1[,2])
+f1 &lt;- 2 * precision * recall / (precision + recall)
+precision</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuNzE0NzA1OVxuIn0= -->
+<pre><code>[1] 0.7147059</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVjYWxsXG5gYGAifQ== -->
+<pre class="r"><code>recall</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuODIzNzI4OFxuIn0= -->
+<pre><code>[1] 0.8237288</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZjFcbmBgYCJ9 -->
+<pre class="r"><code>f1</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuNzY1MzU0M1xuIn0= -->
+<pre><code>[1] 0.7653543</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyByZWFkIGJhdGFkYWwgZGF0YVxuYmF0YWRhbCA8LSByZWFkLmNzdihcIkJBVEFEQUwuY3N2XCIpXG4jIHByb2Nlc3MgYmF0YWRhbCBkYXRhXG5jYXRzID0gYyhcIlNUQVRVU19QVTFcIiwgXCJTVEFUVVNfUFUyXCIsIFwiU1RBVFVTX1BVM1wiLCBcIlNUQVRVU19QVTRcIiwgXCJTVEFUVVNfUFU1XCIsIFwiU1RBVFVTX1BVNlwiLCBcIlNUQVRVU19QVTdcIiwgXCJTVEFUVVNfUFU4XCIsIFwiU1RBVFVTX1BVOVwiLCBcIlNUQVRVU19QVTEwXCIsIFwiU1RBVFVTX1BVMTFcIiwgXCJTVEFUVVNfVjJcIilcbmZvciAoY29sIGluIGNhdHMpIHtcbiAgYmF0YWRhbFssIGNvbF0gPC0gaWZlbHNlKGJhdGFkYWxbLGNvbF0gPT0gMSwgXCJUcnVlXCIsIFwiRmFsc2VcIilcbiAgYmF0YWRhbFssIGNvbF0gPC0gYXMuZmFjdG9yKGJhdGFkYWxbLCBjb2xdKVxufVxuIyB0cnkgb24gdGVzdCBzZXRcbnByZWRpY3QyIDwtIHByZWRpY3QobW9kZWwxLCBuZXdkYXRhID0gYmF0YWRhbCwgdHlwZSA9ICdyZXNwb25zZScpXG50YWJsZTIgPC0gdGFibGUocHJlZGljdDIgPj0gMC41LCBiYXRhZGFsJEFUVF9GTEFHKVxucHJlY2lzaW9uIDwtIHRhYmxlMlsyLDJdL3N1bSh0YWJsZTFbMixdKVxucmVjYWxsIDwtIHRhYmxlMlsyLDJdL3N1bSh0YWJsZTFbLDJdKVxuZjEgPC0gMiAqIHByZWNpc2lvbiAqIHJlY2FsbCAvIChwcmVjaXNpb24gKyByZWNhbGwpXG5wcmVjaXNpb25cbmBgYCJ9 -->
+<pre class="r"><code># read batadal data
+batadal &lt;- read.csv(&quot;BATADAL.csv&quot;)
+# process batadal data
+cats = c(&quot;STATUS_PU1&quot;, &quot;STATUS_PU2&quot;, &quot;STATUS_PU3&quot;, &quot;STATUS_PU4&quot;, &quot;STATUS_PU5&quot;, &quot;STATUS_PU6&quot;, &quot;STATUS_PU7&quot;, &quot;STATUS_PU8&quot;, &quot;STATUS_PU9&quot;, &quot;STATUS_PU10&quot;, &quot;STATUS_PU11&quot;, &quot;STATUS_V2&quot;)
+for (col in cats) {
+  batadal[, col] &lt;- ifelse(batadal[,col] == 1, &quot;True&quot;, &quot;False&quot;)
+  batadal[, col] &lt;- as.factor(batadal[, col])
+}
+# try on test set
+predict2 &lt;- predict(model1, newdata = batadal, type = 'response')
+table2 &lt;- table(predict2 &gt;= 0.5, batadal$ATT_FLAG)
+precision &lt;- table2[2,2]/sum(table1[2,])
+recall &lt;- table2[2,2]/sum(table1[,2])
+f1 &lt;- 2 * precision * recall / (precision + recall)
+precision</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuMjg4MjM1M1xuIn0= -->
+<pre><code>[1] 0.2882353</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVjYWxsXG5gYGAifQ== -->
+<pre class="r"><code>recall</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuMzMyMjAzNFxuIn0= -->
+<pre><code>[1] 0.3322034</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZjFcbmBgYCJ9 -->
+<pre class="r"><code>f1</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuMzA4NjYxNFxuIn0= -->
+<pre><code>[1] 0.3086614</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkxvZ2lzdGljIFJlZ3Jlc3Npb246IERldGVjdGluZyBDeWJlciBBdHRhY2tzIGluIFdhdGVyIE5ldHdvcmtzIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQotLS0NCg0KYGBge3J9DQojIFJlbW92ZSBhbGwgdmFyaWFibGVzIGZyb20gdGhlIFIgZW52aXJvbm1lbnQgdG8gY3JlYXRlIGEgZnJlc2ggc3RhcnQNCnJtKGxpc3Q9bHMoKSkNCg0KIyBMb2FkIGRhdGFzZXRzDQp0cmFpbjEgPC0gcmVhZC5jc3YoInRyYWluX2RhdGFzZXQwMS5jc3YiKQ0KdHJhaW4yIDwtIHJlYWQuY3N2KCJ0cmFpbl9kYXRhc2V0MDIuY3N2IikNCnRlc3QgPC0gcmVhZC5jc3YoInRlc3RfZGF0YXNldC5jc3YiKQ0KIyBSZW1vdmUgdmFyaWFibGVzIHRoYXQgaGF2ZSBhIGZhY3RvciBsZXZlbCBvZiAxIA0KdHJhaW4yIDwtIHRyYWluMlssIHNhcHBseSh0cmFpbjIsIG5sZXZlbHMpID4gMV0NCmBgYA0KDQoNClV0aWxpc2luZyB0aGUgZGF0YXNldCB3aXRoIEFUVF9GTEFHIHNldCBhcyBUcnVlIGFuZCBGYWxzZSAodHJhaW4yKSwgbG9naXN0aWMgcmVncmVzc2lvbiBjYW4gYmUgcGVyZm9ybWVkLg0KYGBge3J9DQpsaWJyYXJ5KGNhVG9vbHMpDQpzZXQuc2VlZCgxMDApDQpzcGwgPC1zYW1wbGUuc3BsaXQodHJhaW4yJEFUVF9GTEFHLCBTcGxpdFJhdGlvID0wLjYpDQphdHRhY2tUcmFpbiA8LSBzdWJzZXQodHJhaW4yLCBzcGwgPT0gVFJVRSkNCmF0dGFja1Rlc3QgPC0gc3Vic2V0KHRyYWluMiwgc3BsID09IEZBTFNFKQ0KYGBgDQoNCmBgYHtyfQ0KbW9kZWwxIDwtIGdsbShBVFRfRkxBR34uLCBkYXRhID0gYXR0YWNrVHJhaW4sIGZhbWlseSA9IGJpbm9taWFsKQ0Kc3VtbWFyeShtb2RlbDEpDQpwcmVkaWN0MSA8LSBwcmVkaWN0KG1vZGVsMSwgbmV3ZGF0YSA9IGF0dGFja1RyYWluLCB0eXBlID0gJ3Jlc3BvbnNlJykNCnRhYmxlMSA8LSB0YWJsZShwcmVkaWN0MSA+PSAwLjUsIGF0dGFja1RyYWluJEFUVF9GTEFHKQ0Kc3VtKGRpYWcodGFibGUxKSkvc3VtKHRhYmxlMSkNCmBgYA0KDQo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiTG9naXN0aWMgUmVncmVzc2lvbjogRGV0ZWN0aW5nIEN5YmVyIEF0dGFja3MgaW4gV2F0ZXIgTmV0d29ya3MiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCmBgYHtyfQojIFJlbW92ZSBhbGwgdmFyaWFibGVzIGZyb20gdGhlIFIgZW52aXJvbm1lbnQgdG8gY3JlYXRlIGEgZnJlc2ggc3RhcnQKcm0obGlzdD1scygpKQoKIyBMb2FkIGRhdGFzZXRzCnRyYWluMSA8LSByZWFkLmNzdigidHJhaW5fZGF0YXNldDAxLmNzdiIpCnRyYWluMiA8LSByZWFkLmNzdigidHJhaW5fZGF0YXNldDAyLmNzdiIpCnRlc3QgPC0gcmVhZC5jc3YoInRlc3RfZGF0YXNldC5jc3YiKQoKIyBSZW1vdmUgdmFyaWFibGVzIHRoYXQgZG9uJ3QgdmFyeQppZ25vcmUgPSBjKCJMRVZFTF9UNSIsICJGTE9XX1BVMyIsICJGTE9XX1BVNSIsICJGTE9XX1BVOSIsICJTVEFUVVNfUFUzIiwgIlNUQVRVU19QVTUiLCAiU1RBVFVTX1BVOCIsICJTVEFUVVNfUFU5IikKdHJhaW4yLnNtYWxsIDwtIHRyYWluMlssIC13aGljaChuYW1lcyh0cmFpbjIpICVpbiUgaWdub3JlKV0KYGBgCgoKVXRpbGlzaW5nIHRoZSBkYXRhc2V0IHdpdGggQVRUX0ZMQUcgc2V0IGFzIFRydWUgYW5kIEZhbHNlICh0cmFpbjIpLCBsb2dpc3RpYyByZWdyZXNzaW9uIGNhbiBiZSBwZXJmb3JtZWQuCmBgYHtyfQpsaWJyYXJ5KGNhVG9vbHMpCnNldC5zZWVkKDEwMCkKc3BsIDwtc2FtcGxlLnNwbGl0KHRyYWluMi5zbWFsbCRBVFRfRkxBRywgU3BsaXRSYXRpbyA9MC43KQphdHRhY2tUcmFpbiA8LSBzdWJzZXQodHJhaW4yLnNtYWxsLCBzcGwgPT0gVFJVRSkKYXR0YWNrVGVzdCA8LSBzdWJzZXQodHJhaW4yLnNtYWxsLCBzcGwgPT0gRkFMU0UpCmBgYAoKYGBge3J9CmF0dGFja1RyYWluJERBVEVUSU1FIDwtIE5VTEwKCm1vZGVsMSA8LSBnbG0oQVRUX0ZMQUd+LiwgZGF0YSA9IGF0dGFja1RyYWluLCBmYW1pbHkgPSBiaW5vbWlhbCkKc3VtbWFyeShtb2RlbDEpCnByZWRpY3QxIDwtIHByZWRpY3QobW9kZWwxLCBuZXdkYXRhID0gYXR0YWNrVGVzdCwgdHlwZSA9ICdyZXNwb25zZScpCnRhYmxlMSA8LSB0YWJsZShwcmVkaWN0MSA+PSAwLjUsIGF0dGFja1Rlc3QkQVRUX0ZMQUcpCgpwcmVjaXNpb24gPC0gdGFibGUxWzIsMl0vc3VtKHRhYmxlMVsyLF0pCnJlY2FsbCA8LSB0YWJsZTFbMiwyXS9zdW0odGFibGUxWywyXSkKZjEgPC0gMiAqIHByZWNpc2lvbiAqIHJlY2FsbCAvIChwcmVjaXNpb24gKyByZWNhbGwpCgpwcmVjaXNpb24KcmVjYWxsCmYxCmBgYAoKCmBgYHtyfQojIHJlYWQgYmF0YWRhbCBkYXRhCmJhdGFkYWwgPC0gcmVhZC5jc3YoIkJBVEFEQUwuY3N2IikKCiMgcHJvY2VzcyBiYXRhZGFsIGRhdGEKY2F0cyA9IGMoIlNUQVRVU19QVTEiLCAiU1RBVFVTX1BVMiIsICJTVEFUVVNfUFUzIiwgIlNUQVRVU19QVTQiLCAiU1RBVFVTX1BVNSIsICJTVEFUVVNfUFU2IiwgIlNUQVRVU19QVTciLCAiU1RBVFVTX1BVOCIsICJTVEFUVVNfUFU5IiwgIlNUQVRVU19QVTEwIiwgIlNUQVRVU19QVTExIiwgIlNUQVRVU19WMiIpCgpmb3IgKGNvbCBpbiBjYXRzKSB7CiAgYmF0YWRhbFssIGNvbF0gPC0gaWZlbHNlKGJhdGFkYWxbLGNvbF0gPT0gMSwgIlRydWUiLCAiRmFsc2UiKQogIGJhdGFkYWxbLCBjb2xdIDwtIGFzLmZhY3RvcihiYXRhZGFsWywgY29sXSkKfQoKIyB0cnkgb24gdGVzdCBzZXQKcHJlZGljdDIgPC0gcHJlZGljdChtb2RlbDEsIG5ld2RhdGEgPSBiYXRhZGFsLCB0eXBlID0gJ3Jlc3BvbnNlJykKdGFibGUyIDwtIHRhYmxlKHByZWRpY3QyID49IDAuNSwgYmF0YWRhbCRBVFRfRkxBRykKCnByZWNpc2lvbiA8LSB0YWJsZTJbMiwyXS9zdW0odGFibGUxWzIsXSkKcmVjYWxsIDwtIHRhYmxlMlsyLDJdL3N1bSh0YWJsZTFbLDJdKQpmMSA8LSAyICogcHJlY2lzaW9uICogcmVjYWxsIC8gKHByZWNpc2lvbiArIHJlY2FsbCkKCnByZWNpc2lvbgpyZWNhbGwKZjEKYGBgCgo=</div>
 
 
 
