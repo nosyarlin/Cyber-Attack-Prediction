@@ -229,6 +229,38 @@ plot.ts(train2.small.ts[,"cluster"], axes=FALSE, bty = "n", xlab = "", ylab = ""
 ```
 Didn't work out again. My explanation is, because noise is so much, points in the same "attack" or "non attack" regions end up being separated. Plus, the obs with attacks differ from obs without attacks in patterns that are most obvious in a time series plot. However, the clustering techniques we have used here only look at absolute values of the features of each observation, and are not able to pick up on patterns over time. I can think of two things to try here, 1. remove noise and 2. model this problem as a time series somehow. 
 
+Ok so I just remembered that to do clustering properly, I need to first normalize the data. And if I want to add categorical data in, I can replace True with 1 and False with 0. Let's do that. 
+```{r}
+train2.norm <- train2.small
+cats <- c("STATUS_PU1", "STATUS_PU2", "STATUS_PU4", "STATUS_PU6", "STATUS_PU7", "STATUS_PU10", "STATUS_PU11", "STATUS_V2")
+
+# Change categorical data to numeric
+for (cat in cats) {
+  train2.norm[, cat] <- as.numeric(as.logical(train2.norm[, cat]))
+}
+
+# normalize everything
+for (name in names(train2.norm)) {
+  if (name != "DATETIME" & name != "ATT_FLAG" & name != "cluster" & name != "attack") {
+    train2.norm[, name] <- scale(train2.norm[, name]) 
+  }
+}
+
+```
+
+Clustering
+```{r}
+km <- kmeans(train2.norm[, 2:36], centers=5, nstart=20)
+train2.norm$cluster <- km$cluster
+
+# Plot as timeseries
+train2.norm.ts <- ts(train2.norm)
+plot.ts(train2.norm.ts[,"attack"], col="red")
+par(new = TRUE)
+plot.ts(train2.norm.ts[,"cluster"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="blue")
+```
+Looks a bit better but still not very good :( Sad. 
+
 ## Removing Noise
 The plots were very noisy, making patterns harder to spot. We could try smoothing methods to de-noise the data
 ```{r}
