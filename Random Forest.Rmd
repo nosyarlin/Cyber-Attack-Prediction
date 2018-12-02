@@ -3,17 +3,85 @@ title: "Random Forest"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
 ```{r}
-plot(cars)
+# Remove all variables from the R environment to create a fresh start
+rm(list=ls())
+
+# Load datasets
+train1 <- read.csv("train_dataset01.csv")
+train2 <- read.csv("train_dataset02.csv")
+test <- read.csv("test_dataset.csv")
+
+levels(train2$STATUS_PU3) <- c("False", "True")
+levels(train2$STATUS_PU5) <- c("False", "True")
+levels(train2$STATUS_PU8) <- c("False", "True")
+levels(train2$STATUS_PU9) <- c("False", "True")
+
+levels(test$STATUS_PU8) <- c("False", "True")
+levels(test$STATUS_PU9) <- c("False", "True")
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+Split
+```{r}
+library(caTools)
+set.seed(100)
+spl <-sample.split(train2$ATT_FLAG, SplitRatio =0.7)
+attackTrain <- subset(train2, spl == TRUE)
+attackTest <- subset(train2, spl == FALSE)
+```
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+Train and validate (CART)
+```{r}
+# Random Forest
+library(randomForest)
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+# Build the model
+attackTrain$DATETIME <- NULL
+model1 <- randomForest(ATT_FLAG~., data=attackTrain)
+summary(model1)
+varImpPlot(model1)
+
+# Prediction
+predict1 <- predict(model1, newdata=attackTest)
+cm <- table(predict1, attackTest$ATT_FLAG)
+cm
+
+precision <- cm[2,2]/sum(cm[2,])
+recall <- cm[2,2]/sum(cm[,2])
+f1 <- 2 * precision * recall / (precision + recall)
+
+precision
+recall
+f1
+```
+
+Train on whole train2 and predict test
+```{r}
+# Build the model
+train2$DATETIME <- NULL
+model2 <- randomForest(ATT_FLAG~., data=train2)
+summary(model2)
+varImpPlot(model2)
+
+# Prediction
+predict2 <- predict(model2, newdata=test)
+```
+
+See performance
+```{r}
+test$ATT_FLAG <- predict2
+test.ts <- ts(test)
+
+ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS_PU5", "STATUS_PU8", "STATUS_PU9")
+test.small <- test[ , -which(names(test) %in% ignore)]
+test.small.ts <- ts(test.small)
+
+for (col in colnames(test.small.ts)) {
+  if (col != "DATETIME" & col != "ATT_FLAG") {
+    plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
+    par(new = TRUE)
+    plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+  }
+}
+```
 
