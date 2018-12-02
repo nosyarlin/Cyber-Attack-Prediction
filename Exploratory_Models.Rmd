@@ -1,0 +1,154 @@
+---
+title: "Exploratory Models"
+output: html_notebook
+---
+
+Load and prepare data
+```{r}
+# Remove all variables from the R environment to create a fresh start
+rm(list=ls())
+
+# Load datasets
+train1 <- read.csv("train_dataset01.csv")
+train2 <- read.csv("train_dataset02.csv")
+test <- read.csv("test_dataset.csv")
+
+levels(train2$STATUS_PU3) <- c("False", "True")
+levels(train2$STATUS_PU5) <- c("False", "True")
+levels(train2$STATUS_PU8) <- c("False", "True")
+levels(train2$STATUS_PU9) <- c("False", "True")
+
+levels(test$STATUS_PU8) <- c("False", "True")
+levels(test$STATUS_PU9) <- c("False", "True")
+```
+
+Measure fluctuations in continuous features
+```{r}
+library(dplyr)
+library(zoo)
+
+conti_feats <- c("LEVEL_T1", "LEVEL_T2", "LEVEL_T3", "LEVEL_T4", "LEVEL_T5", "LEVEL_T6", "LEVEL_T7", "PRESSURE_J280", "PRESSURE_J269", "PRESSURE_J300", "PRESSURE_J256", "PRESSURE_J289", "PRESSURE_J415", "PRESSURE_J302", "PRESSURE_J306", "PRESSURE_J307", "PRESSURE_J317", "PRESSURE_J14", "PRESSURE_J422", "FLOW_PU1", "FLOW_PU2", "FLOW_PU3", "FLOW_PU4", "FLOW_PU5", "FLOW_PU6", "FLOW_PU7", "FLOW_PU8", "FLOW_PU9", "FLOW_PU10", "FLOW_PU11", "FLOW_V2")
+
+train2 <- train2 %>% mutate(LEVEL_T1_DELTA = abs(LEVEL_T1 - lag(LEVEL_T1)))
+train2 <- train2 %>% mutate(LEVEL_T2_DELTA = abs(LEVEL_T2 - lag(LEVEL_T2)))
+train2 <- train2 %>% mutate(LEVEL_T3_DELTA = abs(LEVEL_T3 - lag(LEVEL_T3)))
+train2 <- train2 %>% mutate(LEVEL_T4_DELTA = abs(LEVEL_T4 - lag(LEVEL_T4)))
+train2 <- train2 %>% mutate(LEVEL_T5_DELTA = abs(LEVEL_T5 - lag(LEVEL_T5)))
+train2 <- train2 %>% mutate(LEVEL_T6_DELTA = abs(LEVEL_T6 - lag(LEVEL_T6)))
+train2 <- train2 %>% mutate(LEVEL_T7_DELTA = abs(LEVEL_T7 - lag(LEVEL_T7)))
+train2 <- train2 %>% mutate(PRESSURE_J280_DELTA = abs(PRESSURE_J280 - lag(PRESSURE_J280)))
+train2 <- train2 %>% mutate(PRESSURE_J269_DELTA = abs(PRESSURE_J269 - lag(PRESSURE_J269)))
+train2 <- train2 %>% mutate(PRESSURE_J300_DELTA = abs(PRESSURE_J300 - lag(PRESSURE_J300)))
+train2 <- train2 %>% mutate(PRESSURE_J256_DELTA = abs(PRESSURE_J256 - lag(PRESSURE_J256)))
+train2 <- train2 %>% mutate(PRESSURE_J289_DELTA = abs(PRESSURE_J289 - lag(PRESSURE_J289)))
+train2 <- train2 %>% mutate(PRESSURE_J415_DELTA = abs(PRESSURE_J415 - lag(PRESSURE_J415)))
+train2 <- train2 %>% mutate(PRESSURE_J302_DELTA = abs(PRESSURE_J302 - lag(PRESSURE_J302)))
+train2 <- train2 %>% mutate(PRESSURE_J306_DELTA = abs(PRESSURE_J306 - lag(PRESSURE_J306)))
+train2 <- train2 %>% mutate(PRESSURE_J307_DELTA = abs(PRESSURE_J307 - lag(PRESSURE_J307)))
+train2 <- train2 %>% mutate(PRESSURE_J317_DELTA = abs(PRESSURE_J317 - lag(PRESSURE_J317)))
+train2 <- train2 %>% mutate(PRESSURE_J14_DELTA = abs(PRESSURE_J14 - lag(PRESSURE_J14)))
+train2 <- train2 %>% mutate(PRESSURE_J422_DELTA = abs(PRESSURE_J422 - lag(PRESSURE_J422)))
+train2 <- train2 %>% mutate(FLOW_PU1_DELTA = abs(FLOW_PU1 - lag(FLOW_PU1)))
+train2 <- train2 %>% mutate(FLOW_PU2_DELTA = abs(FLOW_PU2 - lag(FLOW_PU2)))
+train2 <- train2 %>% mutate(FLOW_PU3_DELTA = abs(FLOW_PU3 - lag(FLOW_PU3)))
+train2 <- train2 %>% mutate(FLOW_PU4_DELTA = abs(FLOW_PU4 - lag(FLOW_PU4)))
+train2 <- train2 %>% mutate(FLOW_PU5_DELTA = abs(FLOW_PU5 - lag(FLOW_PU5)))
+train2 <- train2 %>% mutate(FLOW_PU6_DELTA = abs(FLOW_PU6 - lag(FLOW_PU6)))
+train2 <- train2 %>% mutate(FLOW_PU7_DELTA = abs(FLOW_PU7 - lag(FLOW_PU7)))
+train2 <- train2 %>% mutate(FLOW_PU8_DELTA = abs(FLOW_PU8 - lag(FLOW_PU8)))
+train2 <- train2 %>% mutate(FLOW_PU9_DELTA = abs(FLOW_PU9 - lag(FLOW_PU9)))
+train2 <- train2 %>% mutate(FLOW_PU10_DELTA = abs(FLOW_PU10 - lag(FLOW_PU10)))
+train2 <- train2 %>% mutate(FLOW_PU11_DELTA = abs(FLOW_PU11 - lag(FLOW_PU11)))
+train2 <- train2 %>% mutate(FLOW_V2_DELTA = abs(FLOW_V2 - lag(FLOW_V2)))
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_DELTA", sep="")
+  new_col2 <- paste(feat, "_DELTA_T", sep="")
+  train2[, new_col2] <- 0
+  temp <- rollapply(train2[, new_col], width=10, by=1, FUN=sum)
+  train2[, new_col2] <- c(temp, rep(0, times=9))
+  
+  train2[1, new_col] <- 0
+  train2[1, new_col2] <- 0
+}
+```
+
+Train on whole train2 and predict test
+```{r}
+library(randomForest)
+
+# Build the model
+train2$DATETIME <- NULL
+model2 <- randomForest(ATT_FLAG~., data=train2)
+summary(model2)
+varImpPlot(model2)
+```
+
+Process test and predict
+```{r}
+# Process
+test <- test %>% mutate(LEVEL_T1_DELTA = abs(LEVEL_T1 - lag(LEVEL_T1)))
+test <- test %>% mutate(LEVEL_T2_DELTA = abs(LEVEL_T2 - lag(LEVEL_T2)))
+test <- test %>% mutate(LEVEL_T3_DELTA = abs(LEVEL_T3 - lag(LEVEL_T3)))
+test <- test %>% mutate(LEVEL_T4_DELTA = abs(LEVEL_T4 - lag(LEVEL_T4)))
+test <- test %>% mutate(LEVEL_T5_DELTA = abs(LEVEL_T5 - lag(LEVEL_T5)))
+test <- test %>% mutate(LEVEL_T6_DELTA = abs(LEVEL_T6 - lag(LEVEL_T6)))
+test <- test %>% mutate(LEVEL_T7_DELTA = abs(LEVEL_T7 - lag(LEVEL_T7)))
+test <- test %>% mutate(PRESSURE_J280_DELTA = abs(PRESSURE_J280 - lag(PRESSURE_J280)))
+test <- test %>% mutate(PRESSURE_J269_DELTA = abs(PRESSURE_J269 - lag(PRESSURE_J269)))
+test <- test %>% mutate(PRESSURE_J300_DELTA = abs(PRESSURE_J300 - lag(PRESSURE_J300)))
+test <- test %>% mutate(PRESSURE_J256_DELTA = abs(PRESSURE_J256 - lag(PRESSURE_J256)))
+test <- test %>% mutate(PRESSURE_J289_DELTA = abs(PRESSURE_J289 - lag(PRESSURE_J289)))
+test <- test %>% mutate(PRESSURE_J415_DELTA = abs(PRESSURE_J415 - lag(PRESSURE_J415)))
+test <- test %>% mutate(PRESSURE_J302_DELTA = abs(PRESSURE_J302 - lag(PRESSURE_J302)))
+test <- test %>% mutate(PRESSURE_J306_DELTA = abs(PRESSURE_J306 - lag(PRESSURE_J306)))
+test <- test %>% mutate(PRESSURE_J307_DELTA = abs(PRESSURE_J307 - lag(PRESSURE_J307)))
+test <- test %>% mutate(PRESSURE_J317_DELTA = abs(PRESSURE_J317 - lag(PRESSURE_J317)))
+test <- test %>% mutate(PRESSURE_J14_DELTA = abs(PRESSURE_J14 - lag(PRESSURE_J14)))
+test <- test %>% mutate(PRESSURE_J422_DELTA = abs(PRESSURE_J422 - lag(PRESSURE_J422)))
+test <- test %>% mutate(FLOW_PU1_DELTA = abs(FLOW_PU1 - lag(FLOW_PU1)))
+test <- test %>% mutate(FLOW_PU2_DELTA = abs(FLOW_PU2 - lag(FLOW_PU2)))
+test <- test %>% mutate(FLOW_PU3_DELTA = abs(FLOW_PU3 - lag(FLOW_PU3)))
+test <- test %>% mutate(FLOW_PU4_DELTA = abs(FLOW_PU4 - lag(FLOW_PU4)))
+test <- test %>% mutate(FLOW_PU5_DELTA = abs(FLOW_PU5 - lag(FLOW_PU5)))
+test <- test %>% mutate(FLOW_PU6_DELTA = abs(FLOW_PU6 - lag(FLOW_PU6)))
+test <- test %>% mutate(FLOW_PU7_DELTA = abs(FLOW_PU7 - lag(FLOW_PU7)))
+test <- test %>% mutate(FLOW_PU8_DELTA = abs(FLOW_PU8 - lag(FLOW_PU8)))
+test <- test %>% mutate(FLOW_PU9_DELTA = abs(FLOW_PU9 - lag(FLOW_PU9)))
+test <- test %>% mutate(FLOW_PU10_DELTA = abs(FLOW_PU10 - lag(FLOW_PU10)))
+test <- test %>% mutate(FLOW_PU11_DELTA = abs(FLOW_PU11 - lag(FLOW_PU11)))
+test <- test %>% mutate(FLOW_V2_DELTA = abs(FLOW_V2 - lag(FLOW_V2)))
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_DELTA", sep="")
+  new_col2 <- paste(feat, "_DELTA_T", sep="")
+  test[, new_col2] <- 0
+  temp <- rollapply(test[, new_col], width=10, by=1, FUN=sum)
+  test[, new_col2] <- c(temp, rep(0, times=9))
+  
+  test[1, new_col] <- 0
+  test[1, new_col2] <- 0
+}
+
+# Prediction
+predict2 <- predict(model2, newdata=test)
+```
+
+
+See performance
+```{r}
+test$ATT_FLAG <- predict2
+test.ts <- ts(test)
+
+ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS_PU5", "STATUS_PU8", "STATUS_PU9")
+test.small <- test[ , -which(names(test) %in% ignore)]
+test.small.ts <- ts(test.small)
+
+for (col in colnames(test.small.ts)) {
+  if (col != "DATETIME" & col != "ATT_FLAG") {
+    plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
+    par(new = TRUE)
+    plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+  }
+}
+```

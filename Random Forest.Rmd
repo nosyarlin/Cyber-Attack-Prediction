@@ -83,5 +83,15 @@ for (col in colnames(test.small.ts)) {
     plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
   }
 }
+
+# section <- test.small.ts[6000:7000, ]
+# for (col in colnames(section)) {
+#   if (col != "DATETIME" & col != "ATT_FLAG") {
+#     plot.ts(section[,col], ylab=col, col=c("black"))
+#     par(new = TRUE)
+#     plot.ts(section[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+#   }
+# }
+
 ```
 
