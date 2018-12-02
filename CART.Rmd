@@ -1,0 +1,83 @@
+---
+title: "CART"
+output: html_notebook
+---
+
+```{r}
+# Remove all variables from the R environment to create a fresh start
+rm(list=ls())
+
+# Load datasets
+train1 <- read.csv("train_dataset01.csv")
+train2 <- read.csv("train_dataset02.csv")
+test <- read.csv("test_dataset.csv")
+
+levels(train2$STATUS_PU3) <- c("False", "True")
+levels(train2$STATUS_PU5) <- c("False", "True")
+levels(train2$STATUS_PU8) <- c("False", "True")
+levels(train2$STATUS_PU9) <- c("False", "True")
+```
+
+Split
+```{r}
+library(caTools)
+set.seed(100)
+spl <-sample.split(train2$ATT_FLAG, SplitRatio =0.7)
+attackTrain <- subset(train2, spl == TRUE)
+attackTest <- subset(train2, spl == FALSE)
+```
+
+Train and validate (CART)
+```{r}
+# CARTs
+library(rpart)
+library(rpart.plot)
+
+# Build the model and visualize it
+attackTrain$DATETIME <- NULL
+model1 <- rpart(ATT_FLAG~., data=attackTrain, method="class")
+prp(model1, type=4, extra=4)
+
+# Prediction
+predict1 <- predict(model1, newdata=attackTest, type="class")
+cm <- table(predict1, attackTest$ATT_FLAG)
+cm
+
+precision <- cm[2,2]/sum(cm[2,])
+recall <- cm[2,2]/sum(cm[,2])
+f1 <- 2 * precision * recall / (precision + recall)
+
+precision
+recall
+f1
+```
+
+Train on whole train2 and predict test
+```{r}
+# Build the model and visualize it
+train2$DATETIME <- NULL
+model2 <- rpart(ATT_FLAG~., data=train2, method="class")
+prp(model2, type=4, extra=4)
+
+# Prediction
+predict2 <- predict(model2, newdata=test, type="class")
+```
+
+See performance
+```{r}
+test$ATT_FLAG <- predict2
+test.ts <- ts(test)
+
+ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS_PU5", "STATUS_PU8", "STATUS_PU9")
+test.small <- test[ , -which(names(test) %in% ignore)]
+test.small.ts <- ts(test.small)
+
+for (col in colnames(test.small.ts)) {
+  if (col != "DATETIME" & col != "ATT_FLAG") {
+    plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
+    par(new = TRUE)
+    plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+  }
+}
+```
+
