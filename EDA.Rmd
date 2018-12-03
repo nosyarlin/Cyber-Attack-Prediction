@@ -316,3 +316,52 @@ train2.ts <- ts(train2)
 # }
 ```
 
+
+
+High Pass Filter 
+```{r}
+library(signal)
+
+train2.norm.ts <- ts(train2.norm)
+plot.ts(train2.norm.ts[,"attack"], col="red")
+par(new = TRUE)
+
+butt <- butter(4,0.3,type='high')
+highfilter <- filter(butt,train2.small.ts[,"LEVEL_T7"])
+plot.ts(highfilter,col='blue')
+```
+Same as above.....(even with low pass) 
+```{r}
+library(signal)
+
+train2.norm.ts <- ts(train2.norm)
+plot.ts(train2.norm.ts[,"attack"], col="red")
+par(new = TRUE)
+
+butt <- butter(2,0.7,type='low')
+lowfilter <- filter(butt,train2.small.ts[,"LEVEL_T7"])
+plot.ts(lowfilter,col='blue')
+```
+
+Cheyb filter
+```{r}
+train2.norm.ts <- ts(train2.norm)
+plot.ts(train2.norm.ts[,"attack"], col="red")
+par(new = TRUE)
+
+
+# length of signal
+n <- 10000
+
+# the frequency to be kept
+F <- 500
+F0 <- 2 * F / n
+
+dataVar <- train2.norm.ts[,"LEVEL_T7"]
+filter <- cheby1(6,2,c(F0-F0*.1,F0+F0*.1),type='pass')
+
+signal <- signal::filter(filter,x=dataVar)
+# stlVar <- stl(train2.small.ts[,"LEVEL_T7"],s.window="periodic")
+plot.ts(signal,col='blue')
+```
+
