@@ -1,0 +1,35 @@
+---
+title: "Normal Distribution"
+output: html_notebook
+---
+
+Load and prepare data
+```{r}
+# Remove all variables from the R environment to create a fresh start
+rm(list=ls())
+
+# Load datasets
+train1 <- read.csv("train_dataset01.csv")
+train2 <- read.csv("train_dataset02.csv")
+test <- read.csv("test_dataset.csv")
+
+levels(train2$STATUS_PU3) <- c("False", "True")
+levels(train2$STATUS_PU5) <- c("False", "True")
+levels(train2$STATUS_PU8) <- c("False", "True")
+levels(train2$STATUS_PU9) <- c("False", "True")
+
+levels(test$STATUS_PU8) <- c("False", "True")
+levels(test$STATUS_PU9) <- c("False", "True")
+```
+
+Learn normal distribution of a feature
+```{r}
+no.attack <- subset(train2, train2$ATT_FLAG == "False")
+no.attack.ts <- ts(no.attack)
+
+conti_feats <- c("LEVEL_T1", "LEVEL_T2", "LEVEL_T3", "LEVEL_T4", "LEVEL_T5", "LEVEL_T6", "LEVEL_T7", "PRESSURE_J280", "PRESSURE_J269", "PRESSURE_J300", "PRESSURE_J256", "PRESSURE_J289", "PRESSURE_J415", "PRESSURE_J302", "PRESSURE_J306", "PRESSURE_J307", "PRESSURE_J317", "PRESSURE_J14", "PRESSURE_J422", "FLOW_PU1", "FLOW_PU2", "FLOW_PU3", "FLOW_PU4", "FLOW_PU5", "FLOW_PU6", "FLOW_PU7", "FLOW_PU8", "FLOW_PU9", "FLOW_PU10", "FLOW_PU11", "FLOW_V2")
+
+means <- colMeans(no.attack[, conti_feats])
+sds <- apply(no.attack[, conti_feats], 2, sd)
+```
+

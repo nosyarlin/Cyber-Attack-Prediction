@@ -264,18 +264,55 @@ Looks a bit better but still not very good :( Sad.
 ## Removing Noise
 The plots were very noisy, making patterns harder to spot. We could try smoothing methods to de-noise the data
 ```{r}
-library(smooth)
-library(Mcomp)
-
-# Example of a noisy plot
-plot.ts(train2.small.ts[,"LEVEL_T7"], ylab="LEVEL_T7")
-
-sma1 <- sma(train2.small.ts[,"LEVEL_T7"], h=18, silent = FALSE)
-plot(sma1)
+# library(smooth)
+# library(Mcomp)
+# 
+# # Example of a noisy plot
+# plot.ts(train2.small.ts[,"LEVEL_T7"], ylab="LEVEL_T7")
+# 
+# sma1 <- sma(train2.small.ts[,"LEVEL_T7"], h=18, silent = FALSE)
+# plot(sma1)
 ```
 
 ```{r}
-plot(forecast(sma1))
+# plot(forecast(sma1))
 ```
 
 sma clearly didn't work. I got to find something else. 
+
+Code moving average myself
+```{r}
+library(zoo)
+
+conti_feats <- c("LEVEL_T1", "LEVEL_T2", "LEVEL_T3", "LEVEL_T4", "LEVEL_T5", "LEVEL_T6", "LEVEL_T7", "PRESSURE_J280", "PRESSURE_J269", "PRESSURE_J300", "PRESSURE_J256", "PRESSURE_J289", "PRESSURE_J415", "PRESSURE_J302", "PRESSURE_J306", "PRESSURE_J307", "PRESSURE_J317", "PRESSURE_J14", "PRESSURE_J422", "FLOW_PU1", "FLOW_PU2", "FLOW_PU3", "FLOW_PU4", "FLOW_PU5", "FLOW_PU6", "FLOW_PU7", "FLOW_PU8", "FLOW_PU9", "FLOW_PU10", "FLOW_PU11", "FLOW_V2")
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA10", sep="")
+  temp <- rollapply(train2[, feat], width=10, by=1, FUN=mean)
+  train2[, new_col] <- c(temp, rep(0, times=9))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA15", sep="")
+  temp <- rollapply(train2[, feat], width=15, by=1, FUN=mean)
+  train2[, new_col] <- c(temp, rep(0, times=14))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA30", sep="")
+  temp <- rollapply(train2[, feat], width=30, by=1, FUN=mean)
+  train2[, new_col] <- c(temp, rep(0, times=29))
+}
+```
+
+```{r}
+train2.ts <- ts(train2)
+# for (col in colnames(train2.ts)) {
+#   if (col != "DATETIME" & col != "ATT_FLAG") {
+#     plot.ts(train2.ts[,col], ylab=col, col=c("black"))
+#     par(new = TRUE)
+#     plot.ts(train2.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+#   }
+# }
+```
+

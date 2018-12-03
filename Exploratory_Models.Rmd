@@ -71,17 +71,18 @@ for (feat in conti_feats) {
   train2[1, new_col] <- 0
   train2[1, new_col2] <- 0
 }
+
 ```
 
 Train on whole train2 and predict test
 ```{r}
-library(randomForest)
-
-# Build the model
-train2$DATETIME <- NULL
-model2 <- randomForest(ATT_FLAG~., data=train2)
-summary(model2)
-varImpPlot(model2)
+# library(randomForest)
+# 
+# # Build the model
+# train2$DATETIME <- NULL
+# model1 <- randomForest(ATT_FLAG~., data=train2)
+# summary(model1)
+# varImpPlot(model1)
 ```
 
 Process test and predict
@@ -131,11 +132,45 @@ for (feat in conti_feats) {
 }
 
 # Prediction
-predict2 <- predict(model2, newdata=test)
+# predict1 <- predict(model1, newdata=test)
 ```
 
 
 See performance
+```{r}
+# test$ATT_FLAG <- predict1
+# test.ts <- ts(test)
+# 
+# ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS_PU5", "STATUS_PU8", "STATUS_PU9")
+# test.small <- test[ , -which(names(test) %in% ignore)]
+# test.small.ts <- ts(test.small)
+
+# for (col in colnames(test.small.ts)) {
+#   if (col != "DATETIME" & col != "ATT_FLAG") {
+#     plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
+#     par(new = TRUE)
+#     plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+#   }
+# }
+```
+
+
+CART model
+```{r}
+# CARTs
+library(rpart)
+library(rpart.plot)
+
+# Build the model and visualize it
+train2$DATETIME <- NULL
+cart <- rpart(ATT_FLAG~., data=train2, method="class")
+prp(cart, type=4, extra=4)
+
+# Prediction
+predict2 <- predict(cart, newdata=test, type="class")
+```
+
+Visualize Results
 ```{r}
 test$ATT_FLAG <- predict2
 test.ts <- ts(test)
@@ -144,11 +179,125 @@ ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS
 test.small <- test[ , -which(names(test) %in% ignore)]
 test.small.ts <- ts(test.small)
 
-for (col in colnames(test.small.ts)) {
-  if (col != "DATETIME" & col != "ATT_FLAG") {
-    plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
+# for (col in colnames(test.small.ts)) {
+#   if (col != "DATETIME" & col != "ATT_FLAG") {
+#     plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
+#     par(new = TRUE)
+#     plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+#   }
+# }
+```
+
+CART with attack number as classes
+```{r}
+# Label attack numbers
+train2$attack <- 0
+attack = 0
+prev = "False"
+for (i in 1:nrow(train2)) {
+  cur = train2$ATT_FLAG[i]
+  if (cur == "True") {
+    if (prev == "False") {
+      attack = attack + 1
+    }
+    train2$attack[i] <- attack 
+  }
+  prev = cur
+}
+
+# Build the model and visualize it
+train2$DATETIME <- NULL
+train2$ATT_FLAG <- NULL
+cart2 <- rpart(attack~., data=train2, method="class")
+prp(cart2, type=4, extra=4)
+
+# Prediction
+predict3 <- predict(cart2, newdata=test, type="class")
+```
+
+Visualize Results
+```{r}
+test$attack <- predict3
+test.ts <- ts(test)
+
+ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS_PU5", "STATUS_PU8", "STATUS_PU9")
+test.small <- test[ , -which(names(test) %in% ignore)]
+test.small.ts <- ts(test.small)
+
+# for (col in colnames(test.small.ts)) {
+#   if (col != "DATETIME" & col != "ATT_FLAG" & col != "attack") {
+#     plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
+#     par(new = TRUE)
+#     plot.ts(test.small.ts[,"attack"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+#   }
+# }
+```
+
+```{r}
+library(zoo)
+
+conti_feats <- c("LEVEL_T1", "LEVEL_T2", "LEVEL_T3", "LEVEL_T4", "LEVEL_T5", "LEVEL_T6", "LEVEL_T7", "PRESSURE_J280", "PRESSURE_J269", "PRESSURE_J300", "PRESSURE_J256", "PRESSURE_J289", "PRESSURE_J415", "PRESSURE_J302", "PRESSURE_J306", "PRESSURE_J307", "PRESSURE_J317", "PRESSURE_J14", "PRESSURE_J422", "FLOW_PU1", "FLOW_PU2", "FLOW_PU3", "FLOW_PU4", "FLOW_PU5", "FLOW_PU6", "FLOW_PU7", "FLOW_PU8", "FLOW_PU9", "FLOW_PU10", "FLOW_PU11", "FLOW_V2")
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA10", sep="")
+  temp <- rollapply(train2[, feat], width=10, by=1, FUN=mean)
+  train2[, new_col] <- c(temp, rep(0, times=9))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA15", sep="")
+  temp <- rollapply(train2[, feat], width=15, by=1, FUN=mean)
+  train2[, new_col] <- c(temp, rep(0, times=14))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA30", sep="")
+  temp <- rollapply(train2[, feat], width=30, by=1, FUN=mean)
+  train2[, new_col] <- c(temp, rep(0, times=29))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA10", sep="")
+  temp <- rollapply(test[, feat], width=10, by=1, FUN=mean)
+  test[, new_col] <- c(temp, rep(0, times=9))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA15", sep="")
+  temp <- rollapply(test[, feat], width=15, by=1, FUN=mean)
+  test[, new_col] <- c(temp, rep(0, times=14))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA30", sep="")
+  temp <- rollapply(test[, feat], width=30, by=1, FUN=mean)
+  test[, new_col] <- c(temp, rep(0, times=29))
+}
+```
+
+```{r}
+library(rpart)
+library(rpart.plot)
+
+train2$DATETIME <- NULL
+cart3 <- rpart(ATT_FLAG~., data=train2, method="class")
+# prp(cart3, type=4, extra=4)
+
+# Prediction
+predict4 <- predict(cart3, newdata=test, type="class")
+```
+
+Visualize results
+```{r}
+test$ATT_FLAG <- predict4
+test.ts <- ts(test)
+
+for (col in conti_feats) {
+  if (col != "DATETIME" & col != "ATT_FLAG" & col != "attack") {
+    plot.ts(test.ts[,col], ylab=col, col=c("black"))
     par(new = TRUE)
-    plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+    plot.ts(test.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
   }
 }
 ```
+
