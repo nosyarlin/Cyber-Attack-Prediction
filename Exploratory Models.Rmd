@@ -284,12 +284,19 @@ Visualize results
 test$ATT_FLAG <- predict4
 test.ts <- ts(test)
 
-for (col in conti_feats) {
-  if (col != "DATETIME" & col != "ATT_FLAG" & col != "attack") {
-    plot.ts(test.ts[,col], ylab=col, col=c("black"))
-    par(new = TRUE)
-    plot.ts(test.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
-  }
-}
+# for (col in conti_feats) {
+#   if (col != "DATETIME" & col != "ATT_FLAG" & col != "attack") {
+#     plot.ts(test.ts[,col], ylab=col, col=c("black"))
+#     par(new = TRUE)
+#     plot.ts(test.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+#   }
+# }
+```
+
+Create output file
+```{r}
+out <- data.frame(DATETIME=test$DATETIME)
+out$ATT_FLAG <- test$ATT_FLAG
+write.csv(out, "output1.csv", row.names=FALSE, quote=FALSE)
 ```
 

@@ -33,3 +33,59 @@ means <- colMeans(no.attack[, conti_feats])
 sds <- apply(no.attack[, conti_feats], 2, sd)
 ```
 
+Calculate p-value in test data for each feature
+```{r}
+p_feats <- c("LEVEL_T1_p", "LEVEL_T2_p", "LEVEL_T3_p", "LEVEL_T4_p", "LEVEL_T5_p", "LEVEL_T6_p", "LEVEL_T7_p", "PRESSURE_J280_p", "PRESSURE_J269_p", "PRESSURE_J300_p", "PRESSURE_J256_p", "PRESSURE_J289_p", "PRESSURE_J415_p", "PRESSURE_J302_p", "PRESSURE_J306_p", "PRESSURE_J307_p", "PRESSURE_J317_p", "PRESSURE_J14_p", "PRESSURE_J422_p", "FLOW_PU1_p", "FLOW_PU2_p", "FLOW_PU3_p", "FLOW_PU4_p", "FLOW_PU5_p", "FLOW_PU6_p", "FLOW_PU7_p", "FLOW_PU8_p", "FLOW_PU9_p", "FLOW_PU10_p", "FLOW_PU11_p", "FLOW_V2_p")
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "p", sep="_")
+  test[, new_col] <- ifelse(test[,feat] < means[feat],
+                            pnorm(test[,feat], mean=means[feat], sd=sds[feat]),
+                            1 - pnorm(test[,feat], mean=means[feat], sd=sds[feat]))
+}
+```
+
+Vote for ATT_FLAG
+```{r}
+p.value = 0.03
+test$ATT_FLAG <- 0
+test$ATT_FLAG <- as.integer(
+                      rowSums(
+                          apply(test[,p_feats] <= p.value,
+                                c(1,2),
+                                function(x) {(as.integer(x))}
+                                )) >= 7)
+```
+
+Sliding vote
+```{r}
+window <- 50
+votes <- rollapply(test$ATT_FLAG, width=window, by=1, FUN=sum)
+temp <- rep(0, times=length(votes))
+
+for (i in 1:length(votes)) {
+  if (votes[i] > 29) {
+    temp[i:(i+window-1)] <- rep(1, times=window) 
+  }
+}
+
+if (length(temp) < nrow(test)) {
+  temp <- c(temp, rep(0, times=nrow(test)-length(temp)))
+}
+
+test$ATT_FLAG <- temp
+```
+
+
+Visualize
+```{r}
+test.ts <- ts(test)
+for (col in conti_feats) {
+  if (col != "DATETIME" & col != "ATT_FLAG") {
+    plot.ts(test.ts[,col], ylab=col, col=c("black"))
+    par(new = TRUE)
+    plot.ts(test.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+  }
+}
+```
+
