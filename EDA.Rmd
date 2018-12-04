@@ -365,3 +365,27 @@ signal <- signal::filter(filter,x=dataVar)
 plot.ts(signal,col='blue')
 ```
 
+
+Low Pass filter worksssss 
+```{r}
+test.ts = ts(test)
+# plot.ts(train2.norm.ts[,"LEVEL_T7"], col='green')
+
+# train2.norm.ts <- ts(train2.norm)
+# plot.ts(train2.norm.ts[,"attack"], col="red")
+# par(new = TRUE)
+
+plot.ts(test.ts[,"PRESSURE_J300"])
+
+butt <- butter(3,0.01,type='low')
+lowfilter <- filter(butt,test.ts[,"PRESSURE_J300"],plane = 'z')
+plot.ts(lowfilter,col='blue')
+
+# karmanFilter <- SSModel(lowfilter ~ SSMtrend(1, Q = 100), H = 100)
+# out<- KFS(karmanFilter)
+# # f <- fft(train2.small.ts[,"LEVEL_T3"])
+# 
+# ts.plot( out$alphahat, col='blue')
+# # ts.plot( out$a, col='red')
+# ts.plot( out$att,col='green')
+```
