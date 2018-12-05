@@ -78,7 +78,7 @@ for (feat in conti_feats) {
 
 Vote for ATT_FLAG
 ```{r}
-p.value = 0.0385
+p.value = 0.025
 #p.value = 0.03
 test$ATT_FLAG <- 0
 test$ATT_FLAG <- as.integer(
@@ -86,7 +86,7 @@ test$ATT_FLAG <- as.integer(
                           apply(test[,p_feats] <= p.value,
                                 c(1,2),
                                 function(x) {(as.integer(x))}
-                          )) >= 11)
+                          )) >= 10)
                                 # )) >= 7)
 ```
 
@@ -112,7 +112,7 @@ slidingVote <- function(data, window, min.votes) {
   return(data)
 }
 
-test <- slidingVote(test, 50, 29)
+test <- slidingVote(test, 30, 22)
 ```
 
 Visualize
