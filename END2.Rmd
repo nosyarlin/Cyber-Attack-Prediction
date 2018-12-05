@@ -1,0 +1,268 @@
+---
+title: "Enhanced Norm Dist 2"
+output: html_notebook
+---
+
+Load and prepare data
+```{r}
+library(zoo)
+library(dplyr)
+library(rlang)
+# Remove all variables from the R environment to create a fresh start
+rm(list=ls())
+
+# Load datasets
+train1 <- read.csv("train_dataset01.csv")
+train2 <- read.csv("train_dataset02.csv")
+test <- read.csv("test_dataset.csv")
+
+# Preprocess
+levels(train2$STATUS_PU3) <- c("False", "True")
+levels(train2$STATUS_PU5) <- c("False", "True")
+levels(train2$STATUS_PU8) <- c("False", "True")
+levels(train2$STATUS_PU9) <- c("False", "True")
+
+levels(test$STATUS_PU8) <- c("False", "True")
+levels(test$STATUS_PU9) <- c("False", "True")
+
+conti_feats <- c("LEVEL_T1", "LEVEL_T2", "LEVEL_T3", "LEVEL_T4", "LEVEL_T5", "LEVEL_T6", "LEVEL_T7", "PRESSURE_J280", "PRESSURE_J269", "PRESSURE_J300", "PRESSURE_J256", "PRESSURE_J289", "PRESSURE_J415", "PRESSURE_J302", "PRESSURE_J306", "PRESSURE_J307", "PRESSURE_J317", "PRESSURE_J14", "PRESSURE_J422", "FLOW_PU1", "FLOW_PU2", "FLOW_PU3", "FLOW_PU4", "FLOW_PU5", "FLOW_PU6", "FLOW_PU7", "FLOW_PU8", "FLOW_PU9", "FLOW_PU10", "FLOW_PU11", "FLOW_V2")
+small_conti_feats <- duplicate(conti_feats)
+original_train2 <- duplicate(train2)
+```
+
+Calculate sd in a sliding window for each feature
+```{r}
+sd_feats <- c("LEVEL_T1_sd", "LEVEL_T2_sd", "LEVEL_T3_sd", "LEVEL_T4_sd", "LEVEL_T6_sd", "LEVEL_T7_sd", "PRESSURE_J280_sd", "PRESSURE_J269_sd", "PRESSURE_J300_sd", "PRESSURE_J256_sd", "PRESSURE_J289_sd", "PRESSURE_J415_sd", "PRESSURE_J302_sd", "PRESSURE_J306_sd", "PRESSURE_J307_sd", "PRESSURE_J317_sd", "PRESSURE_J14_sd", "PRESSURE_J422_sd", "FLOW_PU1_sd", "FLOW_PU2_sd", "FLOW_PU4_sd", "FLOW_PU6_sd", "FLOW_PU7_sd", "FLOW_PU8_sd", "FLOW_PU10_sd", "FLOW_PU11_sd", "FLOW_V2_sd")
+sd.window = 30
+
+makeRollingSD <- function(data, conti_feats, sd.window) {
+  for (feat in conti_feats) {
+    new_col <- paste(feat, "sd", sep="_")
+    temp <- rollapply(data[, feat], width = sd.window, by=1, FUN=sd, align="right")
+    data[, new_col] <- c(rep(0, times=(sd.window-1)), temp)
+  }
+  return(data)
+}
+
+test <- makeRollingSD(test, conti_feats, sd.window)
+train2 <- makeRollingSD(train2, conti_feats, sd.window)
+```
+
+Calculate rate of fluctuations for each feature
+```{r}
+delta_feats <- c("LEVEL_T1_delta", "LEVEL_T2_delta", "LEVEL_T3_delta", "LEVEL_T4_delta", "LEVEL_T5_delta", "LEVEL_T6_delta", "LEVEL_T7_delta", "PRESSURE_J280_delta", "PRESSURE_J269_delta", "PRESSURE_J300_delta", "PRESSURE_J256_delta", "PRESSURE_J289_delta", "PRESSURE_J415_delta", "PRESSURE_J302_delta", "PRESSURE_J306_delta", "PRESSURE_J307_delta", "PRESSURE_J317_delta", "PRESSURE_J14_delta", "PRESSURE_J422_delta", "FLOW_PU1_delta", "FLOW_PU2_delta", "FLOW_PU3_delta", "FLOW_PU4_delta", "FLOW_PU5_delta", "FLOW_PU6_delta", "FLOW_PU7_delta", "FLOW_PU8_delta", "FLOW_PU9_delta", "FLOW_PU10_delta", "FLOW_PU11_delta", "FLOW_V2_delta", "LEVEL_T1_delta_t", "LEVEL_T2_delta_t", "LEVEL_T3_delta_t", "LEVEL_T4_delta_t", "LEVEL_T5_delta_t", "LEVEL_T6_delta_t", "LEVEL_T7_delta_t", "PRESSURE_J280_delta_t", "PRESSURE_J269_delta_t", "PRESSURE_J300_delta_t", "PRESSURE_J256_delta_t", "PRESSURE_J289_delta_t", "PRESSURE_J415_delta_t", "PRESSURE_J302_delta_t", "PRESSURE_J306_delta_t", "PRESSURE_J307_delta_t", "PRESSURE_J317_delta_t", "PRESSURE_J14_delta_t", "PRESSURE_J422_delta_t", "FLOW_PU1_delta_t", "FLOW_PU2_delta_t", "FLOW_PU3_delta_t", "FLOW_PU4_delta_t", "FLOW_PU5_delta_t", "FLOW_PU6_delta_t", "FLOW_PU7_delta_t", "FLOW_PU8_delta_t", "FLOW_PU9_delta_t", "FLOW_PU10_delta_t", "FLOW_PU11_delta_t", "FLOW_V2_delta_t")
+
+makeDeltas <- function(data) {
+  data <- data %>% mutate(LEVEL_T1_delta = abs(LEVEL_T1 - lag(LEVEL_T1)))
+  data <- data %>% mutate(LEVEL_T2_delta = abs(LEVEL_T2 - lag(LEVEL_T2)))
+  data <- data %>% mutate(LEVEL_T3_delta = abs(LEVEL_T3 - lag(LEVEL_T3)))
+  data <- data %>% mutate(LEVEL_T4_delta = abs(LEVEL_T4 - lag(LEVEL_T4)))
+  data <- data %>% mutate(LEVEL_T5_delta = abs(LEVEL_T5 - lag(LEVEL_T5)))
+  data <- data %>% mutate(LEVEL_T6_delta = abs(LEVEL_T6 - lag(LEVEL_T6)))
+  data <- data %>% mutate(LEVEL_T7_delta = abs(LEVEL_T7 - lag(LEVEL_T7)))
+  data <- data %>% mutate(PRESSURE_J280_delta = abs(PRESSURE_J280 - lag(PRESSURE_J280)))
+  data <- data %>% mutate(PRESSURE_J269_delta = abs(PRESSURE_J269 - lag(PRESSURE_J269)))
+  data <- data %>% mutate(PRESSURE_J300_delta = abs(PRESSURE_J300 - lag(PRESSURE_J300)))
+  data <- data %>% mutate(PRESSURE_J256_delta = abs(PRESSURE_J256 - lag(PRESSURE_J256)))
+  data <- data %>% mutate(PRESSURE_J289_delta = abs(PRESSURE_J289 - lag(PRESSURE_J289)))
+  data <- data %>% mutate(PRESSURE_J415_delta = abs(PRESSURE_J415 - lag(PRESSURE_J415)))
+  data <- data %>% mutate(PRESSURE_J302_delta = abs(PRESSURE_J302 - lag(PRESSURE_J302)))
+  data <- data %>% mutate(PRESSURE_J306_delta = abs(PRESSURE_J306 - lag(PRESSURE_J306)))
+  data <- data %>% mutate(PRESSURE_J307_delta = abs(PRESSURE_J307 - lag(PRESSURE_J307)))
+  data <- data %>% mutate(PRESSURE_J317_delta = abs(PRESSURE_J317 - lag(PRESSURE_J317)))
+  data <- data %>% mutate(PRESSURE_J14_delta = abs(PRESSURE_J14 - lag(PRESSURE_J14)))
+  data <- data %>% mutate(PRESSURE_J422_delta = abs(PRESSURE_J422 - lag(PRESSURE_J422)))
+  data <- data %>% mutate(FLOW_PU1_delta = abs(FLOW_PU1 - lag(FLOW_PU1)))
+  data <- data %>% mutate(FLOW_PU2_delta = abs(FLOW_PU2 - lag(FLOW_PU2)))
+  data <- data %>% mutate(FLOW_PU3_delta = abs(FLOW_PU3 - lag(FLOW_PU3)))
+  data <- data %>% mutate(FLOW_PU4_delta = abs(FLOW_PU4 - lag(FLOW_PU4)))
+  data <- data %>% mutate(FLOW_PU5_delta = abs(FLOW_PU5 - lag(FLOW_PU5)))
+  data <- data %>% mutate(FLOW_PU6_delta = abs(FLOW_PU6 - lag(FLOW_PU6)))
+  data <- data %>% mutate(FLOW_PU7_delta = abs(FLOW_PU7 - lag(FLOW_PU7)))
+  data <- data %>% mutate(FLOW_PU8_delta = abs(FLOW_PU8 - lag(FLOW_PU8)))
+  data <- data %>% mutate(FLOW_PU9_delta = abs(FLOW_PU9 - lag(FLOW_PU9)))
+  data <- data %>% mutate(FLOW_PU10_delta = abs(FLOW_PU10 - lag(FLOW_PU10)))
+  data <- data %>% mutate(FLOW_PU11_delta = abs(FLOW_PU11 - lag(FLOW_PU11)))
+  data <- data %>% mutate(FLOW_V2_delta = abs(FLOW_V2 - lag(FLOW_V2)))
+  return(data)
+}
+
+makeDeltaTs <- function(data, conti_feats, window) {
+  for (feat in conti_feats) {
+    new_col <- paste(feat, "_delta", sep="")
+    new_col2 <- paste(feat, "_delta_t", sep="")
+    data[, new_col2] <- 0
+    data[1, new_col] <- 0
+
+    temp <- rollapply(data[, new_col], width=window, by=1, FUN=sum)
+    data[, new_col2] <- c(rep(0, times=9), temp)
+    
+    data[1, new_col] <- 0
+    data[1, new_col2] <- 0
+  }
+  return(data)
+}
+
+train2 <- makeDeltas(train2)
+test <- makeDeltas(test)
+
+train2 <- makeDeltaTs(train2, conti_feats, 10)
+test <- makeDeltaTs(test, conti_feats, 10)
+```
+
+Learn normal distribution of all features
+```{r}
+conti_feats = c(conti_feats, sd_feats, delta_feats)
+no.attack <- train2[train2$ATT_FLAG == "False",]
+no.attack.ts <- ts(no.attack)
+
+means <- colMeans(no.attack[, conti_feats])
+sds <- apply(no.attack[, conti_feats], 2, sd)
+```
+
+Calculate p-value in test data for each feature
+```{r}
+p_feats <- c("LEVEL_T1_p", "LEVEL_T2_p", "LEVEL_T3_p", "LEVEL_T4_p", "LEVEL_T5_p", "LEVEL_T6_p", "LEVEL_T7_p", "PRESSURE_J280_p", "PRESSURE_J269_p", "PRESSURE_J300_p", "PRESSURE_J256_p", "PRESSURE_J289_p", "PRESSURE_J415_p", "PRESSURE_J302_p", "PRESSURE_J306_p", "PRESSURE_J307_p", "PRESSURE_J317_p", "PRESSURE_J14_p", "PRESSURE_J422_p", "FLOW_PU1_p", "FLOW_PU2_p", "FLOW_PU3_p", "FLOW_PU4_p", "FLOW_PU5_p", "FLOW_PU6_p", "FLOW_PU7_p", "FLOW_PU8_p", "FLOW_PU9_p", "FLOW_PU10_p", "FLOW_PU11_p", "FLOW_V2_p", "LEVEL_T1_sd_p", "LEVEL_T2_sd_p", "LEVEL_T3_sd_p", "LEVEL_T4_sd_p", "LEVEL_T6_sd_p", "LEVEL_T7_sd_p", "PRESSURE_J280_sd_p", "PRESSURE_J269_sd_p", "PRESSURE_J300_sd_p", "PRESSURE_J256_sd_p", "PRESSURE_J289_sd_p", "PRESSURE_J415_sd_p", "PRESSURE_J302_sd_p", "PRESSURE_J306_sd_p", "PRESSURE_J307_sd_p", "PRESSURE_J317_sd_p", "PRESSURE_J14_sd_p", "PRESSURE_J422_sd_p", "FLOW_PU1_sd_p", "FLOW_PU2_sd_p", "FLOW_PU4_sd_p", "FLOW_PU6_sd_p", "FLOW_PU7_sd_p", "FLOW_PU8_sd_p", "FLOW_PU10_sd_p", "FLOW_PU11_sd_p", "FLOW_V2_sd_p", "LEVEL_T1_delta_p", "LEVEL_T2_delta_p", "LEVEL_T3_delta_p", "LEVEL_T4_delta_p", "LEVEL_T5_delta_p", "LEVEL_T6_delta_p", "LEVEL_T7_delta_p", "PRESSURE_J280_delta_p", "PRESSURE_J269_delta_p", "PRESSURE_J300_delta_p", "PRESSURE_J256_delta_p", "PRESSURE_J289_delta_p", "PRESSURE_J415_delta_p", "PRESSURE_J302_delta_p", "PRESSURE_J306_delta_p", "PRESSURE_J307_delta_p", "PRESSURE_J317_delta_p", "PRESSURE_J14_delta_p", "PRESSURE_J422_delta_p", "FLOW_PU1_delta_p", "FLOW_PU2_delta_p", "FLOW_PU3_delta_p", "FLOW_PU4_delta_p", "FLOW_PU5_delta_p", "FLOW_PU6_delta_p", "FLOW_PU7_delta_p", "FLOW_PU8_delta_p", "FLOW_PU9_delta_p", "FLOW_PU10_delta_p", "FLOW_PU11_delta_p", "FLOW_V2_delta_p", "LEVEL_T1_delta_t_p", "LEVEL_T2_delta_t_p", "LEVEL_T3_delta_t_p", "LEVEL_T4_delta_t_p", "LEVEL_T5_delta_t_p", "LEVEL_T6_delta_t_p", "LEVEL_T7_delta_t_p", "PRESSURE_J280_delta_t_p", "PRESSURE_J269_delta_t_p", "PRESSURE_J300_delta_t_p", "PRESSURE_J256_delta_t_p", "PRESSURE_J289_delta_t_p", "PRESSURE_J415_delta_t_p", "PRESSURE_J302_delta_t_p", "PRESSURE_J306_delta_t_p", "PRESSURE_J307_delta_t_p", "PRESSURE_J317_delta_t_p", "PRESSURE_J14_delta_t_p", "PRESSURE_J422_delta_t_p", "FLOW_PU1_delta_t_p", "FLOW_PU2_delta_t_p", "FLOW_PU3_delta_t_p", "FLOW_PU4_delta_t_p", "FLOW_PU5_delta_t_p", "FLOW_PU6_delta_t_p", "FLOW_PU7_delta_t_p", "FLOW_PU8_delta_t_p", "FLOW_PU9_delta_t_p", "FLOW_PU10_delta_t_p", "FLOW_PU11_delta_t_p", "FLOW_V2_delta_t_p")
+
+makePValues <- function(data, conti_feats, means, sds) {
+  for (feat in conti_feats) {
+    new_col <- paste(feat, "p", sep="_")
+    data[, new_col] <- ifelse(data[,feat] < means[feat],
+                              pnorm(data[,feat], mean=means[feat], sd=sds[feat]),
+                              1 - pnorm(data[,feat], mean=means[feat], sd=sds[feat]))
+  }
+  return(data)
+}
+
+train2 <- makePValues(train2, conti_feats, means, sds)
+test <- makePValues(test, conti_feats, means, sds)
+```
+
+Vote for ATT_FLAG using p-value and sd
+```{r}
+obsVote <- function(data, p_feats, p.value, min.votes) {
+  p.votes <- data[,p_feats] <= p.value
+  
+  data$ATT_FLAG <- 0
+  data$ATT_FLAG <- as.integer(
+                        rowSums(
+                            apply(p.votes,
+                                  c(1,2),
+                                  function(x) {(as.integer(x))}
+                                  )) >= min.votes)
+  return(data)
+}
+
+test <- obsVote(test, p_feats, 0.02, 15)
+```
+
+Sliding vote
+```{r}
+slidingVote <- function(data, window, min.votes) {
+  votes <- rollapply(data$ATT_FLAG, width=window, by=1, FUN=sum)
+  temp <- rep(0, times=length(votes))
+  
+  for (i in 1:length(votes)) {
+    if (votes[i] >= min.votes) {
+      temp[i + window] <- 1
+    }
+  }
+  
+  if (length(temp) < nrow(data)) {
+    temp <- c(temp, rep(0, times=nrow(data)-length(temp)))
+  }
+  
+  data$ATT_FLAG <- temp
+  return(data)
+}
+test <- slidingVote(test, 50, 45)
+```
+
+Train on train2
+```{r}
+trainModel <- function(p.data, ori.data, p_feats, window) {
+  p_threshold <- seq(0.02, 0.03, 0.001)
+  p_min.votes <- 10:20
+  slide_min.votes <- 40:50
+  bestF <- 0
+  bestP_T <- 0
+  bestP_min <- 0
+  bestSlide_min <- 0
+  
+  for (p_t in p_threshold) {
+    for (p_min in p_min.votes) {
+      for (slide_min in slide_min.votes) {
+        dup = duplicate(p.data)
+
+        # Predict
+        dup <- obsVote(dup, p_feats, p_t, p_min)
+        dup <- slidingVote(dup, window, slide_min)
+        
+        # Convert to "False" and "True"
+        dup$ATT_FLAG <- ifelse(dup$ATT_FLAG == 1, "True", "False")
+        
+        # Calculate F score
+        cm <- table(dup$ATT_FLAG, ori.data$ATT_FLAG)
+        f1 <- 0
+        tryCatch(
+          {
+            precision <- cm[2,2]/sum(cm[2,])
+            recall <- cm[2,2]/sum(cm[,2])
+            f1 <- (2 * precision * recall)/(precision + recall)
+          },
+          error=function(cond) {
+            precision <- cm[2]/sum(cm)
+            recall <- cm[2]/cm[2]
+            f1 <- (2 * precision * recall)/(precision + recall)
+          }
+        )
+        
+        # Update
+        if (f1 > bestF) {
+          bestF <- f1
+          bestP_T = p_t
+          bestP_min = p_min
+          bestSlide_min = slide_min
+        }
+      }
+    }
+  }
+  
+  print(bestF)
+  print(bestP_T)
+  print(bestP_min)
+  print(bestSlide_min)
+  return(c(bestF, bestP_T, bestP_min, bestSlide_min))
+}
+
+trainModel(train2, original_train2, p_feats, 50)
+
+# trained with
+# p_threshold <- seq(0.02, 0.03, 0.001)
+# p_min.votes <- 10:20
+# slide_min.votes <- 40:50
+# 0.6429202  0.0200000 15.0000000 45.0000000
+```
+
+
+Visualize
+```{r}
+test.ts <- ts(test)
+for (col in small_conti_feats) {
+  if (col != "DATETIME" & col != "ATT_FLAG") {
+    plot.ts(test.ts[,col], ylab=col, col=c("black"))
+    par(new = TRUE)
+    plot.ts(test.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+  }
+}
+```
+
+Output
+```{r}
+# out <- data.frame(DATETIME=test$DATETIME)
+# out$ATT_FLAG <- ifelse(test$ATT_FLAG == 1, "True", "False")
+# write.csv(out, "output2.csv", quote=FALSE, row.names=FALSE)
+```
+
+
+

@@ -323,8 +323,8 @@ High Pass Filter
 library(signal)
 
 train2.norm.ts <- ts(train2.norm)
-plot.ts(train2.norm.ts[,"attack"], col="red")
-par(new = TRUE)
+# plot.ts(train2.norm.ts[,"attack"], col="red")
+# par(new = TRUE)
 
 butt <- butter(4,0.3,type='high')
 highfilter <- filter(butt,train2.small.ts[,"LEVEL_T7"])

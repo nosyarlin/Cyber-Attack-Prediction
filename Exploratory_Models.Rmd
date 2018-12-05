@@ -273,6 +273,24 @@ for (feat in conti_feats) {
   temp <- rollapply(test[, feat], width=30, by=1, FUN=mean)
   test[, new_col] <- c(temp, rep(0, times=29))
 }
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA40", sep="")
+  temp <- rollapply(test[, feat], width=40, by=1, FUN=mean)
+  test[, new_col] <- c(temp, rep(0, times=39))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA50", sep="")
+  temp <- rollapply(test[, feat], width=50, by=1, FUN=mean)
+  test[, new_col] <- c(temp, rep(0, times=49))
+}
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "_MA60", sep="")
+  temp <- rollapply(test[, feat], width=60, by=1, FUN=mean)
+  test[, new_col] <- c(temp, rep(0, times=59))
+}
 ```
 
 ```{r}
@@ -298,6 +316,13 @@ for (col in conti_feats) {
     par(new = TRUE)
     plot.ts(test.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
   }
+}
+```
+
+```{r}
+test.ts <- ts(test)
+for (col in names(test)) {
+  plot.ts(test.ts[, col], ylab=col)
 }
 ```
 

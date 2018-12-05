@@ -6,7 +6,5 @@ feats = ["LEVEL_T1", "LEVEL_T2", "LEVEL_T3", "LEVEL_T4", "LEVEL_T5", "LEVEL_T6",
          "FLOW_PU11", "FLOW_V2"]
 
 for feat in feats:
-        delta_col = "{}_DELTA".format(feat)
-        abs_delta_col = "{}_ABS_DELTA".format(feat)
-
-        print("test <- test %>% mutate({} = abs({} - lag({})))".format(delta_col, feat, feat))
+        delta_col = "{}_delta".format(feat)
+        print("data <- data %>% mutate({} = abs({} - lag({})))".format(delta_col, feat, feat))

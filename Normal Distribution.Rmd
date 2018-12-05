@@ -76,7 +76,6 @@ if (length(temp) < nrow(test)) {
 test$ATT_FLAG <- temp
 ```
 
-
 Visualize
 ```{r}
 test.ts <- ts(test)

@@ -1,0 +1,120 @@
+---
+title: "Normal Distribution after High Pass Filter"
+output: html_notebook
+---
+
+Load and prepare data
+```{r}
+library(zoo)
+# Remove all variables from the R environment to create a fresh start
+rm(list=ls())
+
+# Load datasets
+train1 <- read.csv("train_dataset01.csv")
+train2 <- read.csv("train_dataset02.csv")
+test <- read.csv("test_dataset.csv")
+
+# Preprocess
+levels(train2$STATUS_PU3) <- c("False", "True")
+levels(train2$STATUS_PU5) <- c("False", "True")
+levels(train2$STATUS_PU8) <- c("False", "True")
+levels(train2$STATUS_PU9) <- c("False", "True")
+
+levels(test$STATUS_PU8) <- c("False", "True")
+levels(test$STATUS_PU9) <- c("False", "True")
+```
+
+Learn normal distribution of a feature
+```{r}
+no.attack <- subset(train2, train2$ATT_FLAG == "False")
+no.attack.ts <- ts(no.attack)
+
+conti_feats <- c("LEVEL_T1", "LEVEL_T2", "LEVEL_T3", "LEVEL_T4", "LEVEL_T5", "LEVEL_T6", "LEVEL_T7", "PRESSURE_J280", "PRESSURE_J269", "PRESSURE_J300", "PRESSURE_J256", "PRESSURE_J289", "PRESSURE_J415", "PRESSURE_J302", "PRESSURE_J306", "PRESSURE_J307", "PRESSURE_J317", "PRESSURE_J14", "PRESSURE_J422", "FLOW_PU1", "FLOW_PU2", "FLOW_PU3", "FLOW_PU4", "FLOW_PU5", "FLOW_PU6", "FLOW_PU7", "FLOW_PU8", "FLOW_PU9", "FLOW_PU10", "FLOW_PU11", "FLOW_V2")
+
+means <- colMeans(no.attack[, conti_feats])
+sds <- apply(no.attack[, conti_feats], 2, sd)
+```
+
+Calculate p-value in test data for each feature
+```{r}
+p_feats <- c("LEVEL_T1_p", "LEVEL_T2_p", "LEVEL_T3_p", "LEVEL_T4_p", "LEVEL_T5_p", "LEVEL_T6_p", "LEVEL_T7_p", "PRESSURE_J280_p", "PRESSURE_J269_p", "PRESSURE_J300_p", "PRESSURE_J256_p", "PRESSURE_J289_p", "PRESSURE_J415_p", "PRESSURE_J302_p", "PRESSURE_J306_p", "PRESSURE_J307_p", "PRESSURE_J317_p", "PRESSURE_J14_p", "PRESSURE_J422_p", "FLOW_PU1_p", "FLOW_PU2_p", "FLOW_PU3_p", "FLOW_PU4_p", "FLOW_PU5_p", "FLOW_PU6_p", "FLOW_PU7_p", "FLOW_PU8_p", "FLOW_PU9_p", "FLOW_PU10_p", "FLOW_PU11_p", "FLOW_V2_p")
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "p", sep="_")
+  test[, new_col] <- ifelse(test[,feat] < means[feat],
+                            pnorm(test[,feat], mean=means[feat], sd=sds[feat]),
+                            1 - pnorm(test[,feat], mean=means[feat], sd=sds[feat]))
+}
+```
+
+Calculate sd in a sliding window in test data for each feature
+```{r}
+sd_feats <- c("LEVEL_T1_sd", "LEVEL_T2_sd", "LEVEL_T3_sd", "LEVEL_T4_sd", "LEVEL_T6_sd", "LEVEL_T7_sd", "PRESSURE_J280_sd", "PRESSURE_J269_sd", "PRESSURE_J300_sd", "PRESSURE_J256_sd", "PRESSURE_J289_sd", "PRESSURE_J415_sd", "PRESSURE_J302_sd", "PRESSURE_J306_sd", "PRESSURE_J307_sd", "PRESSURE_J317_sd", "PRESSURE_J14_sd", "PRESSURE_J422_sd", "FLOW_PU1_sd", "FLOW_PU2_sd", "FLOW_PU4_sd", "FLOW_PU6_sd", "FLOW_PU7_sd", "FLOW_PU8_sd", "FLOW_PU10_sd", "FLOW_PU11_sd", "FLOW_V2_sd")
+sd.window = 30
+
+for (feat in conti_feats) {
+  new_col <- paste(feat, "sd", sep="_")
+  temp <- rollapply(test[, feat], width = sd.window, by=1, FUN=sd)
+  test[, new_col] <- abs(c(temp, rep(0, times=(sd.window-1))) - sds[feat])/sds[feat]
+}
+```
+
+Vote for ATT_FLAG using p-value and sd
+```{r}
+p.value = 0.03
+sd.value = 1
+
+p.votes <- test[,p_feats] <= p.value
+sd.votes <- test[,sd_feats] > sd.value
+total.votes <- cbind(p.votes, sd.votes)
+
+test$ATT_FLAG <- 0
+test$ATT_FLAG <- as.integer(
+                      rowSums(
+                          apply(total.votes,
+                                c(1,2),
+                                function(x) {(as.integer(x))}
+                                )) >= 7)
+```
+
+Sliding vote
+```{r}
+window <- 50
+votes <- rollapply(test$ATT_FLAG, width=window, by=1, FUN=sum)
+temp <- rep(0, times=length(votes))
+
+for (i in 1:length(votes)) {
+  if (votes[i] > 29) {
+    temp[i:(i+window-1)] <- rep(1, times=window) 
+  } else {
+    temp[i:(i+window-1)] <- rep(0, times=window) 
+  }
+}
+
+if (length(temp) < nrow(test)) {
+  temp <- c(temp, rep(0, times=nrow(test)-length(temp)))
+}
+
+test$ATT_FLAG <- temp
+```
+
+Visualize
+```{r}
+test.ts <- ts(test)
+for (col in conti_feats) {
+  if (col != "DATETIME" & col != "ATT_FLAG") {
+    plot.ts(test.ts[,col], ylab=col, col=c("black"))
+    par(new = TRUE)
+    plot.ts(test.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+  }
+}
+```
+
+Output
+```{r}
+# out <- data.frame(DATETIME=test$DATETIME)
+# out$ATT_FLAG <- ifelse(test$ATT_FLAG == 1, "True", "False")
+# write.csv(out, "output2.csv", quote=FALSE, row.names=FALSE)
+```
+
+
