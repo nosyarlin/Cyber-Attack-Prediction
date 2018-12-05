@@ -86,7 +86,7 @@ test$ATT_FLAG <- as.integer(
                           apply(test[,p_feats] <= p.value,
                                 c(1,2),
                                 function(x) {(as.integer(x))}
-                          )) >= 15)
+                          )) >= 11)
                                 # )) >= 7)
 ```
 
@@ -96,7 +96,7 @@ library(zoo)
 
 slidingVote <- function(data, window, min.votes) {
   votes <- rollapply(data$ATT_FLAG, width=window, by=1, FUN=sum)
-  temp <- data$ATT_FLAG
+  temp <- rep(0, times=length(votes))
   
   for (i in 1:length(votes)) {
     if (votes[i] >= min.votes) {
@@ -112,7 +112,7 @@ slidingVote <- function(data, window, min.votes) {
   return(data)
 }
 
-test <- slidingVote(test, 50, 15)
+test <- slidingVote(test, 10, 7)
 ```
 
 Visualize
