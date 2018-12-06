@@ -34,7 +34,7 @@ train2[train2$ATT_FLAG == "False",] %>%
   gather() %>% 
   ggplot(aes(value)) +
     facet_wrap(~ key, scales = "free") +
-    geom_histogram(binwidth = 25)
+    geom_histogram(binwidth = 10)
 ```
 
 ## Baseline Model
