@@ -72,12 +72,12 @@ ignore = c("LEVEL_T5", "FLOW_PU3", "FLOW_PU5", "FLOW_PU9", "STATUS_PU3", "STATUS
 test.small <- test[ , -which(names(test) %in% ignore)]
 test.small.ts <- ts(test.small)
 
-for (col in colnames(test.small.ts)) {
-  if (col != "DATETIME" & col != "ATT_FLAG") {
-    plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
-    par(new = TRUE)
-    plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
-  }
-}
+# for (col in colnames(test.small.ts)) {
+#   if (col != "DATETIME" & col != "ATT_FLAG") {
+#     plot.ts(test.small.ts[,col], ylab=col, col=c("black"))
+#     par(new = TRUE)
+#     plot.ts(test.small.ts[,"ATT_FLAG"], axes=FALSE, bty = "n", xlab = "", ylab = "", col="red")
+#   }
+# }
 ```
 
