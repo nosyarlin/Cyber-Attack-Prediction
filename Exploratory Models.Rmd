@@ -297,6 +297,6 @@ Create output file
 ```{r}
 out <- data.frame(DATETIME=test$DATETIME)
 out$ATT_FLAG <- test$ATT_FLAG
-write.csv(out, "output1.csv", row.names=FALSE, quote=FALSE)
+# write.csv(out, "output1.csv", row.names=FALSE, quote=FALSE)
 ```
 
